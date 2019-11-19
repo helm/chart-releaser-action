@@ -1,0 +1,14 @@
+name: "chart-releaser action"
+description: "Run the chart-releaser tool"
+author: "unguiculus"
+inputs:
+  charts-dir:
+    description: The charts directory
+    default: charts
+  charts-repo-url:
+    description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
+  token:
+    description: The GitHub token
+runs:
+  using: "node12"
+  main: "lib/main.js"
