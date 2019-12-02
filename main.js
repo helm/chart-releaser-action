@@ -12,19 +12,8 @@
 //   # See the License for the specific language governing permissions and
 // limitations under the License.
 
-const spawn = require('child_process').spawn
+const spawnSync = require('child_process').spawnSync;
 const path = require("path");
 
-const main = async () => {
-    await new Promise((resolve, reject) => {
-        const proc = spawn('bash', [path.join(__dirname, 'main.sh')], {stdio: 'inherit'})
-        proc.on('close', resolve)
-        proc.on('error', reject)
-    })
-}
-
-main().catch(err => {
-    console.error(err)
-    console.error(err.stack)
-    process.exit(-1)
-})
+const proc = spawnSync('bash', [path.join(__dirname, 'main.sh')], {stdio: 'inherit'});
+process.exit(proc.status)
