@@ -46,4 +46,4 @@ This uses [`@helm/chart-releaser-action`](https://www.github.com/helm/chart-rele
 
 ## Code of conduct
 
-Participation in the Helm community is governed by the [Code of Conduct](code-of-conduct.md).
+Participation in the Helm community is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
