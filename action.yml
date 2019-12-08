@@ -1,5 +1,5 @@
-name: "GitHub Action for Helm Chart Releasing"
-description: "Release your Helm chart to a charts repo on GitHub Pages"
+name: "Helm Chart Releaser"
+description: "Host a Helm charts repo on GitHub Pages"
 author: "The Helm authors"
 branding:
   color: blue
