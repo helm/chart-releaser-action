@@ -2,7 +2,7 @@ name: "Helm Chart Releaser"
 description: "Host a Helm charts repo on GitHub Pages"
 author: "The Helm authors"
 branding:
-  color: blue
+  color: anchor
   icon: check-circle
 inputs:
   charts_dir:
