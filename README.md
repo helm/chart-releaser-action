@@ -11,7 +11,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
     * The token must have `repo` scope
     * The token's user must have write access to the project
     * To mitigate risk you may wish to limit the token to a single project by creating a [machine user](https://developer.github.com/v3/guides/managing-deploy-keys/#machine-users)
-    * Please note the personal access token is required because of an [Actions bug](https://github.com/JamesIves/github-pages-deploy-action/issues/5), and will hopefully be unnecessary in the future
+    * Please note the personal access token is required because of an [Actions bug](https://github.community/t5/GitHub-Actions/Github-action-not-triggering-gh-pages-upon-push/m-p/31266/highlight/true#M743), and will hopefully be unnecessary in the future
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below. For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 ### Inputs
