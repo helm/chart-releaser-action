@@ -24,7 +24,7 @@ For more information on inputs, see the [API Documentation](https://developer.gi
 
 ### Example workflow
 
-Create a workflow (eg: `.github/workflows/release.yml`. replace `<owner>` and `<project>` with your GitHub project's owner and project name):
+Create a workflow (eg: `.github/workflows/release.yml`):
 
 ```yaml
 name: Release Charts
