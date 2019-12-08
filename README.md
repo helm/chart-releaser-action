@@ -47,7 +47,7 @@ jobs:
           git config user.email noreply@github.com
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@master
+        uses: helm/chart-releaser-action@v1.0.0-alpha.1
         env:
           CR_TOKEN: "${{ secrets.CR_TOKEN }}"
 ```
