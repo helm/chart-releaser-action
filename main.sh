@@ -27,6 +27,10 @@ main() {
     args=(--owner "$owner" --repo "$repo")
     args+=(--charts-dir "${INPUT_CHARTS_DIR?Input 'charts_dir' is required}")
 
+    if [[ -n "${INPUT_VERSION:-}" ]]; then
+        args+=(--version "${INPUT_VERSION}")
+    fi
+
     if [[ -n "${INPUT_CHARTS_REPO_URL:-}" ]]; then
         args+=(--charts-repo-url "${INPUT_CHARTS_REPO_URL}")
     fi
