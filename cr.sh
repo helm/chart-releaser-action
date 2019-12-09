@@ -27,7 +27,7 @@ cat << EOF
 Usage: $(basename "$0") <options>
 
     -h, --help               Display help
-    -v, --version            The kind version to use (default: v0.2.3)"
+    -v, --version            The chart-releaser version to use (default: v0.2.3)"
     -d, --charts-dir         The charts directory (defaut: charts)
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
