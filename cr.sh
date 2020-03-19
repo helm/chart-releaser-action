@@ -164,9 +164,21 @@ parse_command_line() {
 install_chart_releaser() {
     echo "Installing chart-releaser..."
 
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
-    tar -xzf cr.tar.gz
-    sudo mv cr /usr/local/bin/cr
+    if [[ ! -z "${CHART_RELEASE_COMMIT_HASH}" ]]
+    then
+        echo "Installing chart-releaser from GitHub."
+        git clone https://github.com/helm/chart-releaser
+        cd chart-releaser
+        git checkout ${CHART_RELEASE_COMMIT_HASH}
+        go mod download
+        go install ./...
+        export PATH=$PATH:$HOME/go/bin
+        cd ..
+    else
+        curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
+        tar -xzf cr.tar.gz
+        sudo mv cr /usr/local/bin/cr
+    fi
 }
 
 lookup_latest_tag() {
