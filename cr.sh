@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=v0.2.3
+DEFAULT_CHART_RELEASER_VERSION=v1.0.0-beta.1
 
 : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
 
@@ -27,7 +27,7 @@ cat << EOF
 Usage: $(basename "$0") <options>
 
     -h, --help               Display help
-    -v, --version            The chart-releaser version to use (default: v0.2.3)"
+    -v, --version            The chart-releaser version to use (default: v1.0.0-beta.1)"
     -d, --charts-dir         The charts directory (defaut: charts)
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
