@@ -197,7 +197,7 @@ package_chart() {
     local chart="$1"
 
     echo "Packaging chart '$chart'..."
-    helm package "$chart" --destination .cr-release-packages --dependency-update --save=false
+    helm package "$chart" --destination .cr-release-packages --dependency-update
 }
 
 release_charts() {
