@@ -6,7 +6,7 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v0.2.3)"
+    description: "The chart-releaser version to use (default: v1.0.0-beta.1)"
   charts_dir:
     description: The charts directory
     default: charts
