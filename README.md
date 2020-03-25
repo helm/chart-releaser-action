@@ -47,6 +47,9 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Fetch history
+        run: git fetch --prune --unshallow
+      
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.0.0-rc.1
         env:
