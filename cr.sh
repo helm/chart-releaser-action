@@ -67,7 +67,11 @@ main() {
         mkdir -p .cr-index
 
         for chart in "${changed_charts[@]}"; do
-            package_chart "$chart"
+            if [[ -d "$chart" ]]; then
+                package_chart "$chart"
+            else
+                echo "Chart '$chart' no longer exists in repo. Skipping it..."
+            fi
         done
 
         release_charts
