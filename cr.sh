@@ -181,6 +181,18 @@ lookup_latest_tag() {
     fi
 }
 
+filter_charts() {
+    while read chart; do
+        [[ ! -d "$chart" ]] && continue
+        local file="$chart/Chart.yaml"
+        if [[ -f "$file" ]]; then
+            echo $chart
+        else
+           echo "WARNING: $file is missing, assuming that '$chart' is not a Helm chart. Skipping." 1>&2
+        fi
+    done
+}
+
 lookup_changed_charts() {
     local commit="$1"
 
@@ -194,7 +206,7 @@ lookup_changed_charts() {
         fields='1,2'
     fi
 
-    cut -d '/' -f "$fields" <<< "$changed_files" | uniq
+    cut -d '/' -f "$fields" <<< "$changed_files" | uniq | filter_charts
 }
 
 package_chart() {
