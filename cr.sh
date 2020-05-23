@@ -20,8 +20,6 @@ set -o pipefail
 
 DEFAULT_CHART_RELEASER_VERSION=v1.0.0-beta.1
 
-: "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
-
 show_help() {
 cat << EOF
 Usage: $(basename "$0") <options>
@@ -239,7 +237,7 @@ update_index() {
     git add index.yaml
     git commit --message="Update index.yaml" --signoff
 
-    local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
+    local repo_url="https://x-access-token:$GITHUB_TOKEN@github.com/$owner/$repo"
     git push "$repo_url" gh-pages
 
     popd > /dev/null
