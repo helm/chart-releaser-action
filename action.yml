@@ -13,6 +13,9 @@ inputs:
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
     required: true
+  index_md_path:
+    description: "If set and file exists, copies <index_md.path> to GitHub Pages index.md (path should relative to repo root)"
+    required: false
 runs:
   using: "node12"
   main: "main.js"

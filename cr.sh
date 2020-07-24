@@ -32,6 +32,7 @@ Usage: $(basename "$0") <options>
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
     -r, --repo               The repo name
+    -i, --index-md-path      The file path to copy to GitHub pages index.md
 EOF
 }
 
@@ -41,6 +42,7 @@ main() {
     local owner=
     local repo=
     local charts_repo_url=
+    local index_md_path=
 
     parse_command_line "$@"
 
@@ -140,6 +142,16 @@ parse_command_line() {
                     exit 1
                 fi
                 ;;
+            -i|--index-md-path)
+                if [[ -n "${2:-}" ]]; then
+                    index_md_path="$2"
+                    shift
+                else
+                    echo "ERROR: '--index-md-path' cannot be empty." >&2
+                    show_help
+                    exit 1
+                fi
+                ;;
             *)
                 break
                 ;;
@@ -226,6 +238,16 @@ update_index() {
 
     set -x
 
+    local index_md_updated=false
+    if [[ -z "$index_md_path" ]]; then
+        if [[ -f "./$index_md_path" ]]; then
+          cp --force "./$index_md_path" "$gh_pages_worktree/index.md"
+          index_md_updated=true
+        else
+          echo "WARNING: unable to update index.md - file '$index_md_path' not found"
+        fi
+    fi
+
     cr index -o "$owner" -r "$repo" -c "$charts_repo_url"
 
     gh_pages_worktree=$(mktemp -d)
@@ -237,7 +259,10 @@ update_index() {
     pushd "$gh_pages_worktree" > /dev/null
 
     git add index.yaml
-    git commit --message="Update index.yaml" --signoff
+    if [[ "$index_md_updated" = "true" ]]; then
+        git add index.md
+    fi
+    git commit --message="Update index" --signoff
 
     local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
     git push "$repo_url" gh-pages
