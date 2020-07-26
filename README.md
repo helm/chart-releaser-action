@@ -7,6 +7,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 ### Pre-requisites
 
 1. A GitHub repo containing a directory with your Helm charts (eg: `/charts`)
+1. A GitHub branch called `gh-pages` to store the published charts. See `charts_repo_url` for alternatives
 1. A GitHub project [Secret](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets#creating-encrypted-secrets) named `CR_TOKEN` with the value of a GitHub [personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line#creating-a-token)
     * The token must have `repo` scope
     * The token's user must have write access to the project
