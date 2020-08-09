@@ -237,7 +237,7 @@ update_index() {
     git add index.yaml
     git commit --message="Update index.yaml" --signoff
 
-    local repo_url="https://x-access-token:$GITHUB_TOKEN@github.com/$owner/$repo"
+    local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
     git push "$repo_url" gh-pages
 
     popd > /dev/null
