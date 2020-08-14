@@ -8,7 +8,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 1. A GitHub repo containing a directory with your Helm charts (eg: `/charts`)
 1. A GitHub branch called `gh-pages` to store the published charts. See `charts_repo_url` for alternatives
-1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below. 
+1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
   For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 ### Inputs
@@ -36,7 +36,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Configure Git
         run: |
