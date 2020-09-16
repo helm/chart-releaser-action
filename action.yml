@@ -10,6 +10,8 @@ inputs:
   charts_dir:
     description: The charts directory
     default: charts
+  index_dir:
+    description: The index directory when not repo root
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
     required: true

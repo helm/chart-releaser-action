@@ -29,6 +29,7 @@ Usage: $(basename "$0") <options>
     -h, --help               Display help
     -v, --version            The chart-releaser version to use (default: v1.0.0)"
     -d, --charts-dir         The charts directory (default: charts)
+    -i, --index-dir          The index directory when not repo root
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
     -r, --repo               The repo name
@@ -38,6 +39,7 @@ EOF
 main() {
     local version="$DEFAULT_CHART_RELEASER_VERSION"
     local charts_dir=charts
+    local index_dir=
     local owner=
     local repo=
     local charts_repo_url=
@@ -106,6 +108,16 @@ parse_command_line() {
                     shift
                 else
                     echo "ERROR: '-d|--charts-dir' cannot be empty." >&2
+                    show_help
+                    exit 1
+                fi
+                ;;
+            -i|--index-dir)
+                if [[ -n "${2:-}" ]]; then
+                    index_dir="$2"
+                    shift
+                else
+                    echo "ERROR: '-i|--index-dir' cannot be empty." >&2
                     show_help
                     exit 1
                 fi
@@ -232,12 +244,17 @@ update_index() {
 
     git worktree add "$gh_pages_worktree" gh-pages
 
-    cp --force .cr-index/index.yaml "$gh_pages_worktree/index.yaml"
+    if [[ -n "$index_dir" ]]; then
+        index="${index_dir%/}/index.yaml"
+    else
+        index="index.yaml"
+    fi
+    cp --force .cr-index/index.yaml "$gh_pages_worktree/$index"
 
     pushd "$gh_pages_worktree" > /dev/null
 
-    git add index.yaml
-    git commit --message="Update index.yaml" --signoff
+    git add "$index"
+    git commit --message="Update $index" --signoff
 
     local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
     git push "$repo_url" gh-pages

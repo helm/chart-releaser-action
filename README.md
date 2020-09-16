@@ -17,6 +17,7 @@ For more information on inputs, see the [API Documentation](https://developer.gi
 
 - `version`: The chart-releaser version to use (default: v1.0.0)
 - `charts_dir`: The charts directory
+- `index_dir`: The index directory when not repo root
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
 
 ### Example Workflow
