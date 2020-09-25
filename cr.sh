@@ -218,7 +218,7 @@ package_chart() {
 
 release_charts() {
     echo 'Releasing charts...'
-    cr upload -o "$owner" -r "$repo"
+    cr upload -o "$owner" -r "$repo" -c "$(git rev-parse HEAD)"
 }
 
 update_index() {
