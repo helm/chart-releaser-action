@@ -203,7 +203,7 @@ lookup_changed_charts() {
     if [[ "$charts_dir" == '.' ]]; then
         fields='1'
     else
-        fields='1,2'
+        fields='1-'
     fi
 
     cut -d '/' -f "$fields" <<< "$changed_files" | uniq | filter_charts
