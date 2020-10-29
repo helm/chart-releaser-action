@@ -26,6 +26,7 @@ Usage: $(basename "$0") <options>
 
     -h, --help               Display help
     -v, --version            The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
+        --config             The path to the chart-releaser config file
     -d, --charts-dir         The charts directory (default: charts)
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
@@ -35,6 +36,7 @@ EOF
 
 main() {
     local version="$DEFAULT_CHART_RELEASER_VERSION"
+    local config=
     local charts_dir=charts
     local owner=
     local repo=
@@ -88,6 +90,16 @@ parse_command_line() {
             -h|--help)
                 show_help
                 exit
+                ;;
+            --config)
+                if [[ -n "${2:-}" ]]; then
+                    config="$2"
+                    shift
+                else
+                    echo "ERROR: '--config' cannot be empty." >&2
+                    show_help
+                    exit 1
+                fi
                 ;;
             -v|--version)
                 if [[ -n "${2:-}" ]]; then
@@ -207,18 +219,33 @@ lookup_changed_charts() {
 package_chart() {
     local chart="$1"
 
+    local args=(--package-path .cr-release-packages)
+    if [[ -n "$config" ]]; then
+        args+=(--config "$config")
+    fi
+
     echo "Packaging chart '$chart'..."
-    cr package --package-path .cr-release-packages
+    cr package "${args[@]}"
 }
 
 release_charts() {
+    local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
+    if [[ -n "$config" ]]; then
+        args+=(--config "$config")
+    fi
+
     echo 'Releasing charts...'
-    cr upload -o "$owner" -r "$repo" -c "$(git rev-parse HEAD)"
+    cr upload "${args[@]}"
 }
 
 update_index() {
+    local args=(-o "$owner" -r "$repo" -c "$charts_repo_url" --push)
+    if [[ -n "$config" ]]; then
+        args+=(--config "$config")
+    fi
+
     echo 'Updating charts repo index...'
-    cr index -o "$owner" -r "$repo" -c "$charts_repo_url" --push
+    cr index "${args[@]}"
 }
 
 main "$@"

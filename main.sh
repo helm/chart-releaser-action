@@ -31,6 +31,10 @@ main() {
         args+=(--version "${INPUT_VERSION}")
     fi
 
+    if [[ -n "${INPUT_CONFIG:-}" ]]; then
+        args+=(--config "${INPUT_CONFIG}")
+    fi
+
     if [[ -n "${INPUT_CHARTS_REPO_URL:-}" ]]; then
         args+=(--charts-repo-url "${INPUT_CHARTS_REPO_URL}")
     fi
