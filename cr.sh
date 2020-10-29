@@ -18,16 +18,14 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=v1.0.0
-
-: "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
+DEFAULT_CHART_RELEASER_VERSION=v1.1.0
 
 show_help() {
 cat << EOF
 Usage: $(basename "$0") <options>
 
     -h, --help               Display help
-    -v, --version            The chart-releaser version to use (default: v1.0.0)
+    -v, --version            The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
     -d, --charts-dir         The charts directory (default: charts)
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
@@ -44,7 +42,8 @@ main() {
 
     parse_command_line "$@"
 
-    echo "$repo"
+    : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
+
     local repo_root
     repo_root=$(git rev-parse --show-toplevel)
     pushd "$repo_root" > /dev/null
@@ -182,11 +181,11 @@ lookup_latest_tag() {
 }
 
 filter_charts() {
-    while read chart; do
+    while read -r chart; do
         [[ ! -d "$chart" ]] && continue
         local file="$chart/Chart.yaml"
         if [[ -f "$file" ]]; then
-            echo $chart
+            echo "$chart"
         else
            echo "WARNING: $file is missing, assuming that '$chart' is not a Helm chart. Skipping." 1>&2
         fi
@@ -209,7 +208,7 @@ package_chart() {
     local chart="$1"
 
     echo "Packaging chart '$chart'..."
-    helm package "$chart" --destination .cr-release-packages --dependency-update
+    cr package --package-path .cr-release-packages
 }
 
 release_charts() {
@@ -219,26 +218,7 @@ release_charts() {
 
 update_index() {
     echo 'Updating charts repo index...'
-
-    set -x
-
-    cr index -o "$owner" -r "$repo" -c "$charts_repo_url"
-
-    gh_pages_worktree=$(mktemp -d)
-
-    git worktree add "$gh_pages_worktree" gh-pages
-
-    cp --force .cr-index/index.yaml "$gh_pages_worktree/index.yaml"
-
-    pushd "$gh_pages_worktree" > /dev/null
-
-    git add index.yaml
-    git commit --message="Update index.yaml" --signoff
-
-    local repo_url="https://x-access-token:$CR_TOKEN@github.com/$owner/$repo"
-    git push "$repo_url" gh-pages
-
-    popd > /dev/null
+    cr index -o "$owner" -r "$repo" -c "$charts_repo_url" --push
 }
 
 main "$@"
