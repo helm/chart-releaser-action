@@ -6,7 +6,7 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v1.0.0)"
+    description: "The chart-releaser version to use (default: v1.1.1)"
   config:
     description: "The relative path to the chart-releaser config file"
   charts_dir:
@@ -14,7 +14,27 @@ inputs:
     default: charts
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
-    required: true
 runs:
-  using: "node12"
-  main: "main.js"
+  using: composite
+  steps:
+    - run: |
+        owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
+        repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+
+        args=(--owner "$owner" --repo "$repo")
+        args+=(--charts-dir "${{ inputs.charts_dir }}")
+
+        if [[ -n "${{ inputs.version }}" ]]; then
+            args+=(--version "${{ inputs.version }}")
+        fi
+
+        if [[ -n "${{ inputs.config }}" ]]; then
+            args+=(--config "${{ inputs.config }}")
+        fi
+
+        if [[ -n "${{ inputs.charts_repo_url }}" ]]; then
+            args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
+        fi
+
+        "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
+      shell: bash
