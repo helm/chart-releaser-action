@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=v1.1.0
+DEFAULT_CHART_RELEASER_VERSION=v1.1.1
 
 show_help() {
 cat << EOF
@@ -177,11 +177,26 @@ parse_command_line() {
 }
 
 install_chart_releaser() {
-    echo "Installing chart-releaser..."
+    if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
+        echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
+        exit 1
+    fi
 
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
-    tar -xzf cr.tar.gz
-    sudo mv cr /usr/local/bin/cr
+    local arch
+    arch=$(uname -m)
+
+    local cache_dir="$RUNNER_TOOL_CACHE/ct/$version/$arch"
+    if [[ ! -d "$cache_dir" ]]; then
+        mkdir -p "$cache_dir"
+
+        echo "Installing chart-releaser..."
+        curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
+        tar -xzf cr.tar.gz -C "$cache_dir"
+        rm -f cr.tar.gz
+
+        echo 'Adding cr directory to PATH...'
+        export PATH="$cache_dir:$PATH"
+    fi
 }
 
 lookup_latest_tag() {
@@ -219,7 +234,7 @@ lookup_changed_charts() {
 package_chart() {
     local chart="$1"
 
-    local args=(--package-path .cr-release-packages)
+    local args=("$chart" --package-path .cr-release-packages)
     if [[ -n "$config" ]]; then
         args+=(--config "$config")
     fi
