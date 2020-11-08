@@ -20,6 +20,13 @@ For more information on inputs, see the [API Documentation](https://developer.gi
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
 
+### Configuration
+
+All command-line flags can also be set via environment variables or config file.
+Environment variables must be prefixed with `CRA_` and underscores must be used instead of hyphens.
+
+So `--owner` will be `CRA_OWNER`.
+
 ### Example Workflow
 
 Create a workflow (eg: `.github/workflows/release.yml`):
