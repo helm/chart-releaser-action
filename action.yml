@@ -6,7 +6,7 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v1.1.1)"
+    description: "The chart-releaser version to use (default: v1.2.0)"
   config:
     description: "The relative path to the chart-releaser config file"
   charts_dir:
