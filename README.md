@@ -13,12 +13,16 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 ### Inputs
 
-For more information on inputs, see the [API Documentation](https://developer.github.com/v3/repos/releases/#input)
-
 - `version`: The chart-releaser version to use (default: v1.2.0)
-- `config`: Optional config file for chart-releaser
+- `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
+
+### Environment variables
+
+- `CR_TOKEN` (required): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
+
+For more information on environment variables, see the [documentation](https://github.com/helm/chart-releaser#environment-variables).
 
 ### Example Workflow
 
