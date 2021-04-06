@@ -64,6 +64,28 @@ jobs:
 This uses [@helm/chart-releaser-action](https://www.github.com/helm/chart-releaser-action) to turn your GitHub project into a self-hosted Helm chart repo.
 It does this – during every push to `master` – by checking each chart in your project, and whenever there's a new chart version, creates a corresponding [GitHub release](https://help.github.com/en/github/administering-a-repository/about-releases) named for the chart version, adds Helm chart artifacts to the release, and creates or updates an `index.yaml` file with metadata about those releases, which is then hosted on GitHub Pages
 
+#### Example using custom config
+
+`workflow.yml`:
+```yaml
+- name: Run chart-releaser
+  uses: helm/chart-releaser-action@v1.2.0
+  with:
+    charts_dir: charts
+    config: cr.yaml
+    charts_repo_url: xxxxxx
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+```
+
+`cr.yaml`:
+```yaml
+owner: myaccount
+token: 123456789
+```
+
+For options see [config-file](https://github.com/helm/chart-releaser#config-file). 
+
 ## Code of conduct
 
 Participation in the Helm community is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
