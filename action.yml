@@ -36,5 +36,8 @@ runs:
             args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
         fi
 
+        # Install yq
+        sudo snap install yq
+
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
       shell: bash
