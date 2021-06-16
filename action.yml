@@ -14,6 +14,8 @@ inputs:
     default: charts
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
+  release_name_template:
+    description: "Go template for computing release names, using chart metadata (default '{{ .Name }}-{{ .Version }}')"
 runs:
   using: composite
   steps:
@@ -34,6 +36,10 @@ runs:
 
         if [[ -n "${{ inputs.charts_repo_url }}" ]]; then
             args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
+        fi
+
+        if [[ -n "${{ inputs.release_name_template }}" ]]; then
+            args+=(--release-name-template "${{ inputs.release_name_template }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

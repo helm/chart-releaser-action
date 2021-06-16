@@ -31,6 +31,7 @@ Usage: $(basename "$0") <options>
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
     -r, --repo               The repo name
+    --release-name-template  Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
 EOF
 }
 
@@ -40,6 +41,7 @@ main() {
     local charts_dir=charts
     local owner=
     local repo=
+    local release_name_template=
     local charts_repo_url=
 
     parse_command_line "$@"
@@ -151,6 +153,16 @@ parse_command_line() {
                     exit 1
                 fi
                 ;;
+            --release-name-template)
+                if [[ -n "${2:-}" ]]; then
+                    release_name_template="$2"
+                    shift
+                else
+                    echo "ERROR: '--release-name-template' cannot be empty." >&2
+                    show_help
+                    exit 1
+                fi
+                ;;
             *)
                 break
                 ;;
@@ -249,6 +261,10 @@ release_charts() {
         args+=(--config "$config")
     fi
 
+    if [[ -n "$release_name_template" ]]; then
+        args+=(--release-name-template "$release_name_template")
+    fi
+
     echo 'Releasing charts...'
     cr upload "${args[@]}"
 }
@@ -257,6 +273,10 @@ update_index() {
     local args=(-o "$owner" -r "$repo" -c "$charts_repo_url" --push)
     if [[ -n "$config" ]]; then
         args+=(--config "$config")
+    fi
+
+    if [[ -n "$release_name_template" ]]; then
+        args+=(--release-name-template "$release_name_template")
     fi
 
     echo 'Updating charts repo index...'
