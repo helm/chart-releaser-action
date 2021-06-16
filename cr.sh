@@ -35,12 +35,12 @@ EOF
 }
 
 main() {
-    local version="$DEFAULT_CHART_RELEASER_VERSION"
-    local config=
-    local charts_dir=charts
-    local owner=
-    local repo=
-    local charts_repo_url=
+    local version="${CRA_VERSION:=$DEFAULT_CHART_RELEASER_VERSION}"
+    local config="${CRA_CONFIG:=}"
+    local charts_dir="${CRA_CHARTS_DIR:=charts}"
+    local owner="${CRA_OWNER:=}"
+    local repo="${CRA_REPO:=}"
+    local charts_repo_url="${CRA_CHARTS_REPO_URL:=}"
 
     parse_command_line "$@"
 
