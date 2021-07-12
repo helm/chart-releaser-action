@@ -49,6 +49,9 @@ inputs:
     description: Mark the created GitHub release as 'latest'
     required: false
     default: true
+  match_tags:
+    description: "The glob to use to filter Git tags (default: all tags)"
+    required: false
   packages_with_index:
     description: "Upload chart packages directly into publishing branch"
     required: false
@@ -110,6 +113,10 @@ runs:
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
             args+=(--mark-as-latest "${{ inputs.mark_as_latest }}")
+        fi
+
+        if [[ -n "${{ inputs.match_tags }}" ]]; then
+            args+=(--match-tags "${{ inputs.match_tags }}")
         fi
 
         if [[ -n "${{ inputs.packages_with_index }}" ]]; then
