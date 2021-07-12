@@ -7,13 +7,20 @@ branding:
 inputs:
   version:
     description: "The chart-releaser version to use (default: v1.2.1)"
+    required: false
   config:
     description: "The relative path to the chart-releaser config file"
+    required: false
   charts_dir:
     description: The charts directory
     default: charts
+    required: false
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
+    required: false
+  match_tags:
+    description: "The glob to use to filter Git tags (default: all tags)"
+    required: false
 runs:
   using: composite
   steps:
@@ -34,6 +41,10 @@ runs:
 
         if [[ -n "${{ inputs.charts_repo_url }}" ]]; then
             args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
+        fi
+
+        if [[ -n "${{ inputs.match_tags }}" ]]; then
+            args+=(--match-tags "${{ inputs.match_tags }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

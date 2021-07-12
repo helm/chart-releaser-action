@@ -19,6 +19,7 @@ For more information on inputs, see the [API Documentation](https://developer.gi
 - `config`: Optional config file for chart-releaser
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
+- `match_tags`: The glob to use to filter Git tags, usually used with the `CR_RELEASE_NAME_TEMPLATE` environment variable (default: all tags)
 
 ### Example Workflow
 

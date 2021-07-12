@@ -31,6 +31,7 @@ Usage: $(basename "$0") <options>
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
     -r, --repo               The repo name
+    -m, --match-tags         The glob to use to filter Git tags (default: all tags)
 EOF
 }
 
@@ -41,6 +42,7 @@ main() {
     local owner=
     local repo=
     local charts_repo_url=
+    local match_tags=
 
     parse_command_line "$@"
 
@@ -151,6 +153,16 @@ parse_command_line() {
                     exit 1
                 fi
                 ;;
+            -m|--match-tags)
+                if [[ -n "${2:-}" ]]; then
+                    match_tags="$2"
+                    shift
+                else
+                    echo "ERROR: '--match-tags' cannot be empty." >&2
+                    show_help
+                    exit 1
+                fi
+                ;;
             *)
                 break
                 ;;
@@ -202,7 +214,12 @@ install_chart_releaser() {
 lookup_latest_tag() {
     git fetch --tags > /dev/null 2>&1
 
-    if ! git describe --tags --abbrev=0 2> /dev/null; then
+    args=("describe" "--tags" "--abbrev=0")
+    if [ -n "$match_tags" ]; then
+        args+=(--match="$match_tags")
+    fi
+
+    if ! git "${args[@]}" 2> /dev/null; then
         git rev-list --max-parents=0 --first-parent HEAD
     fi
 }
