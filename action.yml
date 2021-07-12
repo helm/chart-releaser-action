@@ -49,6 +49,9 @@ inputs:
     description: Mark the created GitHub release as 'latest'
     required: false
     default: "true"
+  match_tags:
+    description: "The glob to use to filter Git tags (default: all tags)"
+    required: false
   packages_with_index:
     description: "Upload chart packages directly into publishing branch"
     required: false
@@ -83,6 +86,7 @@ runs:
         install_dir: ${{ inputs.install_dir }}
         install_only: ${{ inputs.install_only }}
         mark_as_latest: ${{ inputs.mark_as_latest }}
+        match_tags: ${{ inputs.match_tags }}
         oci_registry_url: ${{ inputs.oci_registry_url }}
         oci_username: ${{ inputs.oci_username }}
         oci_password: ${{ inputs.oci_password }}
@@ -134,6 +138,10 @@ runs:
 
         if [[ -n "$mark_as_latest" ]]; then
             args+=(--mark-as-latest "$mark_as_latest")
+        fi
+
+        if [[ -n "$match_tags" ]]; then
+            args+=(--match-tags "$match_tags")
         fi
 
         if [[ -n "$packages_with_index" ]]; then

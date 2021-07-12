@@ -37,6 +37,7 @@ Usage: $(basename "$0") <options>
         --skip-existing           Skip package upload if release exists
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
+    -m, --match-tags              The glob to use to filter Git tags (default: all tags)
         --packages-with-index     Upload chart packages directly into publishing branch
         --oci-registry-url        OCI registry URL (e.g. oci://ghcr.io/myorg/charts). When set, packages are pushed via 'cr push'.
         --oci-username            Username for OCI registry authentication (falls back to local registry credential store)
@@ -51,6 +52,7 @@ main() {
   local charts_dir=charts
   local owner=
   local repo=
+  local match_tags=
   local install_dir=
   local install_only=
   local skip_packaging=
@@ -187,6 +189,16 @@ parse_command_line() {
         shift
       fi
       ;;
+    -m|--match-tags)
+      if [[ -n "${2:-}" ]]; then
+        match_tags="$2"
+        shift
+      else
+        echo "ERROR: '--match-tags' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
     -n | --install-dir)
       if [[ -n "${2:-}" ]]; then
         install_dir="$2"
@@ -311,7 +323,13 @@ install_chart_releaser() {
 lookup_latest_tag() {
   git fetch --tags >/dev/null 2>&1
 
-  if ! git describe --tags --abbrev=0 HEAD~ 2>/dev/null; then
+  args=("describe" "--tags" "--abbrev=0")
+  if [ -n "$match_tags" ]; then
+    args+=(--match="$match_tags")
+  fi
+  args+=(HEAD~)
+
+  if ! git "${args[@]}" 2> /dev/null; then
     git rev-list --max-parents=0 --first-parent HEAD
   fi
 }
