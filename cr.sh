@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=v1.2.0
+DEFAULT_CHART_RELEASER_VERSION=v1.2.1
 
 show_help() {
 cat << EOF
@@ -225,7 +225,7 @@ lookup_changed_charts() {
     local changed_files
     changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
 
-    local depth=$(( $(tr "/" "\n" <<< "$charts_dir" | wc -l) + 1 ))
+    local depth=$(( $(tr "/" "\n" <<< "$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1 ))
     local fields="1-${depth}"
 
     cut -d '/' -f "$fields" <<< "$changed_files" | uniq | filter_charts

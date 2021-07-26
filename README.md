@@ -13,7 +13,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.2.0)
+- `version`: The chart-releaser version to use (default: v1.2.1)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
@@ -34,7 +34,7 @@ name: Release Charts
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   release:
@@ -56,13 +56,13 @@ jobs:
           version: v3.4.0
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.2.0
+        uses: helm/chart-releaser-action@v1.2.1
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
 
 This uses [@helm/chart-releaser-action](https://www.github.com/helm/chart-releaser-action) to turn your GitHub project into a self-hosted Helm chart repo.
-It does this – during every push to `master` – by checking each chart in your project, and whenever there's a new chart version, creates a corresponding [GitHub release](https://help.github.com/en/github/administering-a-repository/about-releases) named for the chart version, adds Helm chart artifacts to the release, and creates or updates an `index.yaml` file with metadata about those releases, which is then hosted on GitHub Pages
+It does this – during every push to `main` – by checking each chart in your project, and whenever there's a new chart version, creates a corresponding [GitHub release](https://help.github.com/en/github/administering-a-repository/about-releases) named for the chart version, adds Helm chart artifacts to the release, and creates or updates an `index.yaml` file with metadata about those releases, which is then hosted on GitHub Pages
 
 #### Example using custom config
 
@@ -81,7 +81,7 @@ It does this – during every push to `master` – by checking each chart in you
 `cr.yaml`:
 ```yaml
 owner: myaccount
-token: 123456789
+git-base-url: https://api.github.com/
 ```
 
 For options see [config-file](https://github.com/helm/chart-releaser#config-file). 
