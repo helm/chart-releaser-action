@@ -1,4 +1,4 @@
-# *chart-releaser* Action
+# _chart-releaser_ Action
 
 A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, using [helm/chart-releaser](https://github.com/helm/chart-releaser) CLI tool.
 
@@ -9,7 +9,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 1. A GitHub repo containing a directory with your Helm charts (eg: `/charts`)
 1. A GitHub branch called `gh-pages` to store the published charts. See `charts_repo_url` for alternatives
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
-  For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
+   For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 ### Inputs
 
@@ -17,6 +17,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
+- `skip_push_index`: The flag to indicate whether skip push index.yaml or not (default: false)
 
 ### Environment variables
 
@@ -67,6 +68,7 @@ It does this – during every push to `main` – by checking each chart in your 
 #### Example using custom config
 
 `workflow.yml`:
+
 ```yaml
 - name: Run chart-releaser
   uses: helm/chart-releaser-action@v1.2.0
@@ -74,17 +76,19 @@ It does this – during every push to `main` – by checking each chart in your 
     charts_dir: charts
     config: cr.yaml
     charts_repo_url: xxxxxx
+    skip_push_index: false
   env:
     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
 
 `cr.yaml`:
+
 ```yaml
 owner: myaccount
 git-base-url: https://api.github.com/
 ```
 
-For options see [config-file](https://github.com/helm/chart-releaser#config-file). 
+For options see [config-file](https://github.com/helm/chart-releaser#config-file).
 
 ## Code of conduct
 

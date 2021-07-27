@@ -14,6 +14,9 @@ inputs:
     default: charts
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
+  skip_push_index:
+    description: "The flag to indicate whether skip push index.yaml or not (default: false)"
+    default: false
 runs:
   using: composite
   steps:
@@ -34,6 +37,10 @@ runs:
 
         if [[ -n "${{ inputs.charts_repo_url }}" ]]; then
             args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
+        fi
+
+        if [[ "${{ inputs.skip_push_index }}" = true ]]; then
+            args+=(--skip-push-index)
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

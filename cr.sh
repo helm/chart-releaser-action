@@ -29,6 +29,7 @@ Usage: $(basename "$0") <options>
         --config             The path to the chart-releaser config file
     -d, --charts-dir         The charts directory (default: charts)
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
+    -I, --skip-push-index    The flag to indicate whether skip push index.yaml or not (default: false)
     -o, --owner              The repo owner
     -r, --repo               The repo name
 EOF
@@ -41,6 +42,7 @@ main() {
     local owner=
     local repo=
     local charts_repo_url=
+    local skip_push_index=false
 
     parse_command_line "$@"
 
@@ -130,6 +132,9 @@ parse_command_line() {
                     show_help
                     exit 1
                 fi
+                ;;
+            -I|--skip-push-index)
+                skip_push_index=true
                 ;;
             -o|--owner)
                 if [[ -n "${2:-}" ]]; then
@@ -254,9 +259,12 @@ release_charts() {
 }
 
 update_index() {
-    local args=(-o "$owner" -r "$repo" -c "$charts_repo_url" --push)
+    local args=(-o "$owner" -r "$repo" -c "$charts_repo_url")
     if [[ -n "$config" ]]; then
         args+=(--config "$config")
+    fi
+    if [[ "$skip_push_index" != true ]]; then
+        args+=(--push)
     fi
 
     echo 'Updating charts repo index...'
