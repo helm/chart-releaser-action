@@ -15,7 +15,7 @@ maintain your charts in a different directory, you must include a `charts_dir` i
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.2.1)
+- `version`: The chart-releaser version to use (default: v1.3.0)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
@@ -55,10 +55,10 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
-          version: v3.4.0
+          version: v3.7.1
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.2.1
+        uses: helm/chart-releaser-action@v1.3.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -86,7 +86,7 @@ owner: myaccount
 git-base-url: https://api.github.com/
 ```
 
-For options see [config-file](https://github.com/helm/chart-releaser#config-file). 
+For options see [config-file](https://github.com/helm/chart-releaser#config-file).
 
 ## Code of conduct
 
