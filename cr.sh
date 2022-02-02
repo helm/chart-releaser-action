@@ -193,10 +193,10 @@ install_chart_releaser() {
         curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
         tar -xzf cr.tar.gz -C "$cache_dir"
         rm -f cr.tar.gz
-
-        echo 'Adding cr directory to PATH...'
-        export PATH="$cache_dir:$PATH"
     fi
+
+    echo 'Adding cr directory to PATH...'
+    export PATH="$cache_dir:$PATH"
 }
 
 lookup_latest_tag() {
