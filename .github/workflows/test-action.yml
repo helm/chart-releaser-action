@@ -3,7 +3,7 @@ name: test-chart-releaser
 on: [pull_request]
 
 jobs:
-  test_chart_releaser_action:
+  test_chart_releaser_install_action:
     runs-on: ubuntu-latest
     permissions:
       actions: none
@@ -21,8 +21,41 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install chart-releaser
       uses: ./
+      with:
+        install_only: true
+      env:
+        CR_TOKEN: "FAKE_SECRETS"
     - name: Check install!
       run: cr version
+    - name: Check root directory
+      run: |
+        if [[ $(git diff --stat) != '' ]]; then
+          echo 'should be clean'
+          exit 1
+        else
+          exit 0
+        fi
+
+  test_chart_releaser_action:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: none
+      checks: none
+      contents: none
+      deployments: none
+      issues: none
+      packages: none
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+    name: Install chart-releaser and run it
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install chart-releaser
+      uses: ./
+      env:
+        CR_TOKEN: "FAKE_SECRETS"
     - name: Check root directory
       run: |
         if [[ $(git diff --stat) != '' ]]; then
