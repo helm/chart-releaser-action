@@ -29,11 +29,9 @@ jobs:
       run: cr version
     - name: Check root directory
       run: |
-        if [[ $(git diff --stat) != '' ]]; then
+        if ! git diff --stat --exit-code; then
           echo 'should be clean'
           exit 1
-        else
-          exit 0
         fi
 
   test_chart_releaser_action:
@@ -58,9 +56,7 @@ jobs:
         CR_TOKEN: "FAKE_SECRETS"
     - name: Check root directory
       run: |
-        if [[ $(git diff --stat) != '' ]]; then
+        if ! git diff --stat --exit-code; then
           echo 'should be clean'
           exit 1
-        else
-          exit 0
         fi

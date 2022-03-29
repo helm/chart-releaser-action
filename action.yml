@@ -50,10 +50,10 @@ runs:
 
         if [[ -z "${{ inputs.install_dir }}" ]]; then
           install="$RUNNER_TOOL_CACHE/cr/${{ inputs.version }}/$(uname -m)"
-          echo $install >> $GITHUB_PATH
+          echo "$install" >> "$GITHUB_PATH"
           args+=(--install-dir "$install")
         else
-          echo ${{ inputs.install_dir }} >> $GITHUB_PATH
+          echo ${{ inputs.install_dir }} >> "$GITHUB_PATH"
           args+=(--install-dir "${{ inputs.install_dir }}")
         fi
 
