@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=v1.3.0
+DEFAULT_CHART_RELEASER_VERSION=v1.4.0
 
 show_help() {
 cat << EOF
@@ -31,6 +31,8 @@ Usage: $(basename "$0") <options>
     -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
     -r, --repo               The repo name
+    -n, --install-dir        The Path to install the cr tool
+    -i, --install-only       Just install the cr tool
 EOF
 }
 
@@ -41,6 +43,8 @@ main() {
     local owner=
     local repo=
     local charts_repo_url=
+    local install_dir=
+    local install_only=
 
     parse_command_line "$@"
 
@@ -151,6 +155,18 @@ parse_command_line() {
                     exit 1
                 fi
                 ;;
+            -n|--install-dir)
+                if [[ -n "${2:-}" ]]; then
+                    install_dir="$2"
+                    shift
+                fi
+                ;;
+            -i|--install-only)
+                if [[ -n "${2:-}" ]]; then
+                    install_only="$2"
+                    shift
+                fi
+                ;;
             *)
                 break
                 ;;
@@ -174,6 +190,18 @@ parse_command_line() {
     if [[ -z "$charts_repo_url" ]]; then
         charts_repo_url="https://$owner.github.io/$repo"
     fi
+
+    if [[ -z "$install_dir" ]]; then
+        local arch
+        arch=$(uname -m)
+        install_dir="$RUNNER_TOOL_CACHE/cr/$version/$arch"
+    fi
+
+    if [[ -n "$install_only" ]]; then
+        echo "Will install cr tool and not run it..."
+        install_chart_releaser
+        exit 0
+    fi
 }
 
 install_chart_releaser() {
@@ -182,21 +210,17 @@ install_chart_releaser() {
         exit 1
     fi
 
-    local arch
-    arch=$(uname -m)
+    if [[ ! -d "$install_dir" ]]; then
+        mkdir -p "$install_dir"
 
-    local cache_dir="$RUNNER_TOOL_CACHE/ct/$version/$arch"
-    if [[ ! -d "$cache_dir" ]]; then
-        mkdir -p "$cache_dir"
-
-        echo "Installing chart-releaser..."
+        echo "Installing chart-releaser on $install_dir..."
         curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
-        tar -xzf cr.tar.gz -C "$cache_dir"
+        tar -xzf cr.tar.gz -C "$install_dir"
         rm -f cr.tar.gz
     fi
 
     echo 'Adding cr directory to PATH...'
-    export PATH="$cache_dir:$PATH"
+    export PATH="$install_dir:$PATH"
 }
 
 lookup_latest_tag() {

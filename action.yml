@@ -6,14 +6,26 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v1.3.0)"
+    description: "The chart-releaser version to use (default: v1.4.0)"
+    required: false
+    default: v1.4.0
   config:
     description: "The relative path to the chart-releaser config file"
+    required: false
   charts_dir:
     description: The charts directory
+    required: false
     default: charts
   charts_repo_url:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
+    required: false
+  install_dir:
+    description: 'Where to install the cr tool'
+    required: false
+  install_only:
+    description: 'Just install cr tool'
+    required: false
+
 runs:
   using: composite
   steps:
@@ -34,6 +46,19 @@ runs:
 
         if [[ -n "${{ inputs.charts_repo_url }}" ]]; then
             args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
+        fi
+
+        if [[ -z "${{ inputs.install_dir }}" ]]; then
+          install="$RUNNER_TOOL_CACHE/cr/${{ inputs.version }}/$(uname -m)"
+          echo "$install" >> "$GITHUB_PATH"
+          args+=(--install-dir "$install")
+        else
+          echo ${{ inputs.install_dir }} >> "$GITHUB_PATH"
+          args+=(--install-dir "${{ inputs.install_dir }}")
+        fi
+
+        if [[ -n "${{ inputs.install_only }}" ]]; then
+            args+=(--install-only "${{ inputs.install_only }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

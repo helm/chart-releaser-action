@@ -6,7 +6,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 ### Pre-requisites
 
-1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to 
+1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to
 maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
 1. A GitHub branch called `gh-pages` to store the published charts. See `charts_repo_url` for alternatives.
 1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
@@ -15,7 +15,7 @@ maintain your charts in a different directory, you must include a `charts_dir` i
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.3.0)
+- `version`: The chart-releaser version to use (default: v1.4.0)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
@@ -55,10 +55,10 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
-          version: v3.7.1
+          version: v3.8.1
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.3.0
+        uses: helm/chart-releaser-action@v1.4.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -71,7 +71,7 @@ It does this – during every push to `main` – by checking each chart in your 
 `workflow.yml`:
 ```yaml
 - name: Run chart-releaser
-  uses: helm/chart-releaser-action@v1.2.0
+  uses: helm/chart-releaser-action@v1.4.0
   with:
     charts_dir: charts
     config: cr.yaml
@@ -81,6 +81,7 @@ It does this – during every push to `main` – by checking each chart in your 
 ```
 
 `cr.yaml`:
+
 ```yaml
 owner: myaccount
 git-base-url: https://api.github.com/
