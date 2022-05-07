@@ -20,10 +20,13 @@ inputs:
     description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
     required: false
   install_dir:
-    description: 'Where to install the cr tool'
+    description: "Where to install the cr tool"
     required: false
   install_only:
-    description: 'Just install cr tool'
+    description: "Just install cr tool"
+    required: false
+  skip_packaging:
+    description: "skip the packaging option (do your custom packaging before running this action"
     required: false
 
 runs:
@@ -59,6 +62,10 @@ runs:
 
         if [[ -n "${{ inputs.install_only }}" ]]; then
             args+=(--install-only "${{ inputs.install_only }}")
+        fi
+
+        if [[ -n "${{ inputs.skip_packaging }}" ]]; then
+            args+=(--skip-packaging "${{ inputs.skip_packaging }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

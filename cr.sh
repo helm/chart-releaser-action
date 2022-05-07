@@ -33,6 +33,7 @@ Usage: $(basename "$0") <options>
     -r, --repo               The repo name
     -n, --install-dir        The Path to install the cr tool
     -i, --install-only       Just install the cr tool
+    -s, --skip-packaging     Skip the packaging step (run your own packaging before using the releaser)
 EOF
 }
 
@@ -45,6 +46,7 @@ main() {
     local charts_repo_url=
     local install_dir=
     local install_only=
+    local skip_packaging=
 
     parse_command_line "$@"
 
@@ -54,35 +56,43 @@ main() {
     repo_root=$(git rev-parse --show-toplevel)
     pushd "$repo_root" > /dev/null
 
-    echo 'Looking up latest tag...'
-    local latest_tag
-    latest_tag=$(lookup_latest_tag)
+    if ! [[ -n "$skip_packaging" ]]; then
+        echo 'Looking up latest tag...'
+        local latest_tag
+        latest_tag=$(lookup_latest_tag)
 
-    echo "Discovering changed charts since '$latest_tag'..."
-    local changed_charts=()
-    readarray -t changed_charts <<< "$(lookup_changed_charts "$latest_tag")"
+        echo "Discovering changed charts since '$latest_tag'..."
+        local changed_charts=()
+        readarray -t changed_charts <<< "$(lookup_changed_charts "$latest_tag")"
 
-    if [[ -n "${changed_charts[*]}" ]]; then
+        if [[ -n "${changed_charts[*]}" ]]; then
+            install_chart_releaser
+
+            rm -rf .cr-release-packages
+            mkdir -p .cr-release-packages
+
+            rm -rf .cr-index
+            mkdir -p .cr-index
+
+            for chart in "${changed_charts[@]}"; do
+                if [[ -d "$chart" ]]; then
+                    package_chart "$chart"
+                else
+                    echo "Chart '$chart' no longer exists in repo. Skipping it..."
+                fi
+            done
+
+            release_charts
+            update_index
+        else
+            echo "Nothing to do. No chart changes detected."
+        fi
+    else
         install_chart_releaser
-
-        rm -rf .cr-release-packages
-        mkdir -p .cr-release-packages
-
         rm -rf .cr-index
         mkdir -p .cr-index
-
-        for chart in "${changed_charts[@]}"; do
-            if [[ -d "$chart" ]]; then
-                package_chart "$chart"
-            else
-                echo "Chart '$chart' no longer exists in repo. Skipping it..."
-            fi
-        done
-
         release_charts
         update_index
-    else
-        echo "Nothing to do. No chart changes detected."
     fi
 
     popd > /dev/null
@@ -164,6 +174,12 @@ parse_command_line() {
             -i|--install-only)
                 if [[ -n "${2:-}" ]]; then
                     install_only="$2"
+                    shift
+                fi
+                ;;
+            -s|--skip-packaging)
+                if [[ -n "${2:-}" ]]; then
+                    skip_packaging="$2"
                     shift
                 fi
                 ;;
