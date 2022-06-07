@@ -40,6 +40,9 @@ on:
 
 jobs:
   release:
+    # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
