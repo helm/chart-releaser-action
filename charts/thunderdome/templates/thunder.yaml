@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: thunderdome
+  name: thunderdome
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thunderdome
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: thunderdome
+    spec:
+      containers:
+      - image: thunderdome:latest
+        imagePullPolicy: Never
+        name: thunderdome
+        ports:
+        - containerPort: 8080
+        env:
+        - name: APP_DOMAIN
+          value: ".127.0.0.1"
+        - name: COOKIE_SECURE
+          value: "false"
+        - name: SMTP_SECURE
+          value: "false"
+        - name: SMTP_HOST
+          value: mail
+        - name: DB_NAME
+          value: thunderdome
+        - name: DB_USER
+          value: thor
+        - name: DB_PASS
+          value: odinson
+        volumeMounts:
+        - mountPath: /etc/thunderdome
+          name: thunderdome-logs
+      volumes:
+      - name: thunderdome-logs
+        configMap:
+          name: thunderdomeconfig

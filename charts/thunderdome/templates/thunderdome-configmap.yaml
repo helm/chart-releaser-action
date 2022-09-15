@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thunderdomeconfig
+data:
+  config.yaml: |
+    http:
+      domain: thunderdome.dev
+    db:
+      host: db-service.default.svc.cluster.local
+      port: 5432
+      user: thor
+      pass: odinson
+      name: thunderdome

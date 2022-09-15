@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mail
+  name: mail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mail
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: mail
+    spec:
+      containers:
+      - image: djfarrelly/maildev:1.1.0
+        name: mail
+        ports:
+        - containerPort: 80
+        - containerPort: 25

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: db
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: db
+    spec:
+      containers:
+      - image: postgres:13.2
+        name: db
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: thunderdome
+        - name: POSTGRES_USER
+          value: thor
+        - name: POSTGRES_PASSWORD
+          value: odinson
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: thunderdomedata
+      volumes:
+      - name: thunderdomedata
+        emptyDir: {}
