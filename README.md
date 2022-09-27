@@ -15,7 +15,7 @@ maintain your charts in a different directory, you must include a `charts_dir` i
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.4.0)
+- `version`: The chart-releaser version to use (default: v1.4.1)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
@@ -57,12 +57,12 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@v3
         with:
-          version: v3.8.1
+          version: v3.10.0
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.0
+        uses: helm/chart-releaser-action@v1.4.1
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -75,7 +75,7 @@ It does this – during every push to `main` – by checking each chart in your 
 `workflow.yml`:
 ```yaml
 - name: Run chart-releaser
-  uses: helm/chart-releaser-action@v1.4.0
+  uses: helm/chart-releaser-action@v1.4.1
   with:
     charts_dir: charts
     config: cr.yaml
