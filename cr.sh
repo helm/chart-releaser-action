@@ -28,7 +28,6 @@ Usage: $(basename "$0") <options>
     -v, --version            The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
         --config             The path to the chart-releaser config file
     -d, --charts-dir         The charts directory (default: charts)
-    -u, --charts-repo-url    The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)
     -o, --owner              The repo owner
     -r, --repo               The repo name
     -n, --install-dir        The Path to install the cr tool
@@ -42,7 +41,6 @@ main() {
     local charts_dir=charts
     local owner=
     local repo=
-    local charts_repo_url=
     local install_dir=
     local install_only=
 
@@ -125,16 +123,6 @@ parse_command_line() {
                     exit 1
                 fi
                 ;;
-            -u|--charts-repo-url)
-                if [[ -n "${2:-}" ]]; then
-                    charts_repo_url="$2"
-                    shift
-                else
-                    echo "ERROR: '-u|--charts-repo-url' cannot be empty." >&2
-                    show_help
-                    exit 1
-                fi
-                ;;
             -o|--owner)
                 if [[ -n "${2:-}" ]]; then
                     owner="$2"
@@ -185,10 +173,6 @@ parse_command_line() {
         echo "ERROR: '-r|--repo' is required." >&2
         show_help
         exit 1
-    fi
-
-    if [[ -z "$charts_repo_url" ]]; then
-        charts_repo_url="https://$owner.github.io/$repo"
     fi
 
     if [[ -z "$install_dir" ]]; then
@@ -278,7 +262,7 @@ release_charts() {
 }
 
 update_index() {
-    local args=(-o "$owner" -r "$repo" -c "$charts_repo_url" --push)
+    local args=(-o "$owner" -r "$repo" --push)
     if [[ -n "$config" ]]; then
         args+=(--config "$config")
     fi
