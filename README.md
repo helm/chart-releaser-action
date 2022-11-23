@@ -1,4 +1,4 @@
-# *chart-releaser* Action
+# _chart-releaser_ Action
 
 A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, using [helm/chart-releaser](https://github.com/helm/chart-releaser) CLI tool.
 
@@ -7,11 +7,11 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 ### Pre-requisites
 
 1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to
-maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
+   maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
 1. A GitHub branch called `gh-pages` to store the published charts. See `charts_repo_url` for alternatives.
 1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
-  For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
+   For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 ### Inputs
 
@@ -19,6 +19,7 @@ maintain your charts in a different directory, you must include a `charts_dir` i
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
+- `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 
 ### Environment variables
 
@@ -73,6 +74,7 @@ It does this – during every push to `main` – by checking each chart in your 
 #### Example using custom config
 
 `workflow.yml`:
+
 ```yaml
 - name: Run chart-releaser
   uses: helm/chart-releaser-action@v1.4.1
