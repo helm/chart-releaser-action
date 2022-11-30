@@ -16,9 +16,6 @@ inputs:
     description: The charts directory
     required: false
     default: charts
-  charts_repo_url:
-    description: "The GitHub Pages URL to the charts repo (default: https://<owner>.github.io/<repo>)"
-    required: false
   install_dir:
     description: "Where to install the cr tool"
     required: false
@@ -45,10 +42,6 @@ runs:
 
         if [[ -n "${{ inputs.config }}" ]]; then
             args+=(--config "${{ inputs.config }}")
-        fi
-
-        if [[ -n "${{ inputs.charts_repo_url }}" ]]; then
-            args+=(--charts-repo-url "${{ inputs.charts_repo_url }}")
         fi
 
         if [[ -z "${{ inputs.install_dir }}" ]]; then
