@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -59,11 +59,9 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3
-        with:
-          version: v3.10.0
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.1
+        uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -77,7 +75,7 @@ It does this – during every push to `main` – by checking each chart in your 
 
 ```yaml
 - name: Run chart-releaser
-  uses: helm/chart-releaser-action@v1.4.1
+  uses: helm/chart-releaser-action@v1.5.0
   with:
     charts_dir: charts
     config: cr.yaml
