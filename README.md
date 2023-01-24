@@ -21,6 +21,11 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
 
+### Outputs
+
+- `changed_charts`: A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them.
+- `chart_version`: The version of the most recently generated charts; will be set even if no charts have been updated since the last run.
+
 ### Environment variables
 
 - `CR_TOKEN` (required): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)

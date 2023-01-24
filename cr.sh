@@ -58,7 +58,7 @@ main() {
     repo_root=$(git rev-parse --show-toplevel)
     pushd "$repo_root" > /dev/null
 
-    if ! [[ -n "$skip_packaging" ]]; then
+    if [[ -z "$skip_packaging" ]]; then
         echo 'Looking up latest tag...'
         local latest_tag
         latest_tag=$(lookup_latest_tag)
@@ -86,8 +86,10 @@ main() {
 
             release_charts
             update_index
+            echo "changed_charts=$(IFS=, ; echo "${changed_charts[*]}")" > changed_charts.txt
         else
             echo "Nothing to do. No chart changes detected."
+            echo "changed_charts=" > changed_charts.txt
         fi
     else
         install_chart_releaser
@@ -96,6 +98,8 @@ main() {
         release_charts
         update_index
     fi
+
+    echo "chart_version=${latest_tag}" > chart_version.txt
 
     popd > /dev/null
 }

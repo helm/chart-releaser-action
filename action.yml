@@ -32,6 +32,13 @@ inputs:
     description: Mark the created GitHub release as 'latest'
     required: false
     default: true
+outputs:
+  changed_charts:
+    description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
+    value: ${{ steps.release.outputs.changed_charts }}
+  chart_version:
+    description: "The version of the most recently generated charts; will be set even if no charts have been updated since the last run."
+    value: ${{ steps.release.outputs.chart_version }}
 
 runs:
   using: composite
@@ -77,4 +84,8 @@ runs:
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
+
+        cat changed_charts.txt >> "$GITHUB_OUTPUT"
+        cat chart_version.txt >> "$GITHUB_OUTPUT"
+        rm -f changed_charts.txt chart_version.txt
       shell: bash
