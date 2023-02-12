@@ -33,6 +33,7 @@ Usage: $(basename "$0") <options>
     -n, --install-dir        The Path to install the cr tool
     -i, --install-only       Just install the cr tool
     -s, --skip-packaging     Skip the packaging step (run your own packaging before using the releaser)
+    -u, --skip-update-index  Skip update index step
 EOF
 }
 
@@ -45,6 +46,7 @@ main() {
     local install_dir=
     local install_only=
     local skip_packaging=
+    local skip_update_index=
 
     parse_command_line "$@"
 
@@ -81,7 +83,9 @@ main() {
             done
 
             release_charts
-            update_index
+            if [ -z "$skip_update_index" ]; then
+                update_index
+            fi
         else
             echo "Nothing to do. No chart changes detected."
         fi
@@ -90,7 +94,9 @@ main() {
         rm -rf .cr-index
         mkdir -p .cr-index
         release_charts
-        update_index
+        if [ -z "$skip_update_index" ]; then
+          update_index
+        fi
     fi
 
     popd > /dev/null
@@ -168,6 +174,12 @@ parse_command_line() {
             -s|--skip-packaging)
                 if [[ -n "${2:-}" ]]; then
                     skip_packaging="$2"
+                    shift
+                fi
+                ;;
+            -u|--skip-update-index)
+                if [[ -n "${2:-}" ]]; then
+                    skip_update_index="$2"
                     shift
                 fi
                 ;;

@@ -25,6 +25,9 @@ inputs:
   skip_packaging:
     description: "skip the packaging option (do your custom packaging before running this action"
     required: false
+  skip_update_index:
+    description: "skip updating helm chart repo index"
+    required: false
 
 runs:
   using: composite
@@ -59,6 +62,10 @@ runs:
 
         if [[ -n "${{ inputs.skip_packaging }}" ]]; then
             args+=(--skip-packaging "${{ inputs.skip_packaging }}")
+        fi
+        
+        if [[ -n "${{ inputs.skip_update_index }}" ]]; then
+            args+=(--skip-update-index "${{ inputs.skip_update_index }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
