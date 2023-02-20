@@ -33,6 +33,7 @@ Usage: $(basename "$0") <options>
     -n, --install-dir        The Path to install the cr tool
     -i, --install-only       Just install the cr tool
     -s, --skip-packaging     Skip the packaging step (run your own packaging before using the releaser)
+    -l, --mark-as-latest     Mark the created GitHub release as 'latest' (default: true)
 EOF
 }
 
@@ -45,6 +46,7 @@ main() {
     local install_dir=
     local install_only=
     local skip_packaging=
+    local mark_as_latest=true
 
     parse_command_line "$@"
 
@@ -171,6 +173,12 @@ parse_command_line() {
                     shift
                 fi
                 ;;
+            -l|--mark-as-latest)
+                if [[ -n "${2:-}" ]]; then
+                    mark_as_latest="$2"
+                    shift
+                fi
+                ;;
             *)
                 break
                 ;;
@@ -271,6 +279,9 @@ release_charts() {
     local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
     if [[ -n "$config" ]]; then
         args+=(--config "$config")
+    fi
+    if [[ "$mark_as_latest" = false ]]; then
+        args+=(--make-release-latest false)
     fi
 
     echo 'Releasing charts...'

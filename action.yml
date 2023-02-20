@@ -25,6 +25,10 @@ inputs:
   skip_packaging:
     description: "skip the packaging option (do your custom packaging before running this action"
     required: false
+  mark_as_latest:
+    description: Mark the created GitHub release as 'latest'
+    required: false
+    default: true
 
 runs:
   using: composite
@@ -59,6 +63,10 @@ runs:
 
         if [[ -n "${{ inputs.skip_packaging }}" ]]; then
             args+=(--skip-packaging "${{ inputs.skip_packaging }}")
+        fi
+
+        if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
+            args+=(--mark-as-latest "${{ inputs.mark_as_latest }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
