@@ -281,7 +281,7 @@ release_charts() {
         args+=(--config "$config")
     fi
     if [[ "$mark_as_latest" = false ]]; then
-        args+=(--make-release-latest false)
+        args+=(--make-release-latest=false)
     fi
 
     echo 'Releasing charts...'
