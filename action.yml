@@ -29,11 +29,17 @@ inputs:
     description: Mark the created GitHub release as 'latest'
     required: false
     default: true
+  token:
+    description: Token to use when accessing Github APIs
+    required: false
+    default: ${{ secrets.GITHUB_TOKEN }}
 
 runs:
   using: composite
   steps:
-    - run: |
+    - env:
+        CR_TOKEN: ${{ inputs.token }}
+      run: |
         owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
         repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
 
