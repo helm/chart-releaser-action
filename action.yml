@@ -23,7 +23,7 @@ inputs:
     description: "Just install cr tool"
     required: false
   skip_packaging:
-    description: "Skip the packaging option (do your custom packaging before running this action"
+    description: "Skip the packaging option (do your custom packaging before running this action)"
     required: false
   skip_existing:
     description: "Skip package upload if release exists"
