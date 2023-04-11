@@ -8,17 +8,16 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to
    maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
-1. A GitHub branch called `gh-pages` to store the published charts. See `charts_repo_url` for alternatives.
+1. A GitHub branch called `gh-pages` to store the published charts.
 1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
    For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.4.1)
+- `version`: The chart-releaser version to use (default: v1.5.0)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
-- `charts_repo_url`: The GitHub Pages URL to the charts repo (default: `https://<owner>.github.io/<project>`)
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
 
@@ -80,7 +79,6 @@ It does this – during every push to `main` – by checking each chart in your 
   with:
     charts_dir: charts
     config: cr.yaml
-    charts_repo_url: xxxxxx
   env:
     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
