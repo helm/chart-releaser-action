@@ -248,7 +248,7 @@ filter_charts() {
         else
             find "$chart" -name Chart.yaml -type f -print -quit | grep -q Chart.yaml
             if [ $? -eq 0 ]; then
-                echo "$chart"
+                echo "$(dirname $(find "$chart" -name Chart.yaml -type f -print -quit))"
             else
                 echo "WARNING: Chart.yaml is missing in '$chart' or its subdirectories. Skipping." 1>&2
             fi
