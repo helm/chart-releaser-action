@@ -246,7 +246,12 @@ filter_charts() {
         if [[ -f "$file" ]]; then
             echo "$chart"
         else
-           echo "WARNING: $file is missing, assuming that '$chart' is not a Helm chart. Skipping." 1>&2
+            find "$chart" -name Chart.yaml -type f -print -quit | grep -q Chart.yaml
+            if [ $? -eq 0 ]; then
+                echo "$chart"
+            else
+                echo "WARNING: Chart.yaml is missing in '$chart' or its subdirectories. Skipping." 1>&2
+            fi
         fi
     done
 }
