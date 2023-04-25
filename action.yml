@@ -23,7 +23,10 @@ inputs:
     description: "Just install cr tool"
     required: false
   skip_packaging:
-    description: "skip the packaging option (do your custom packaging before running this action"
+    description: "Skip the packaging option (do your custom packaging before running this action)"
+    required: false
+  skip_existing:
+    description: "Skip package upload if release exists"
     required: false
   mark_as_latest:
     description: Mark the created GitHub release as 'latest'
@@ -63,6 +66,10 @@ runs:
 
         if [[ -n "${{ inputs.skip_packaging }}" ]]; then
             args+=(--skip-packaging "${{ inputs.skip_packaging }}")
+        fi
+
+        if [[ -n "${{ inputs.skip_existing }}" ]]; then
+            args+=(--skip-existing "${{ inputs.skip_existing }}")
         fi
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
