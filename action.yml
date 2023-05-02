@@ -85,7 +85,11 @@ runs:
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
 
-        cat changed_charts.txt >> "$GITHUB_OUTPUT"
-        cat chart_version.txt >> "$GITHUB_OUTPUT"
+        if [[ -f changed_charts.txt ]]; then
+            cat changed_charts.txt >> "$GITHUB_OUTPUT"
+        fi
+        if [[ -f chart_version.txt ]]; then
+            cat chart_version.txt >> "$GITHUB_OUTPUT"
+        fi
         rm -f changed_charts.txt chart_version.txt
       shell: bash
