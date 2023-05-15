@@ -35,6 +35,7 @@ Usage: $(basename "$0") <options>
     -i, --install-only            Just install the cr tool
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
+        --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
@@ -50,6 +51,7 @@ main() {
   local install_only=
   local skip_packaging=
   local skip_existing=
+  local skip_upload=
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
@@ -198,6 +200,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --skip-upload)
+      if [[ -n "${2:-}" ]]; then
+          skip_upload="$2"
+          shift
+      fi
+      ;;
     -l | --mark-as-latest)
       if [[ -n "${2:-}" ]]; then
         mark_as_latest="$2"
@@ -328,6 +336,11 @@ release_charts() {
 }
 
 update_index() {
+  if [[ -n "$skip_upload" ]]; then
+    echo "Skipping index upload..."
+    return
+  fi
+
   local args=(-o "$owner" -r "$repo" --push)
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
