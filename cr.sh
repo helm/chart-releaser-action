@@ -194,6 +194,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --packages-with-index)
+        if [[ -n "${2:-}" ]]; then
+            packages_with_index="$2"
+            shift
+        fi
+        ;;
     *)
       break
       ;;
