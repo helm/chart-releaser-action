@@ -43,7 +43,8 @@ outputs:
 runs:
   using: composite
   steps:
-    - run: |
+    - id: release
+      run: |
         owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
         repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
 
