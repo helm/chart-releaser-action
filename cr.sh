@@ -21,7 +21,7 @@ set -o pipefail
 DEFAULT_CHART_RELEASER_VERSION=v1.6.0
 
 show_help() {
-cat << EOF
+  cat <<EOF
 Usage: $(basename "$0") <options>
 
     -h, --help               Display help
@@ -39,274 +39,281 @@ EOF
 }
 
 main() {
-    local version="$DEFAULT_CHART_RELEASER_VERSION"
-    local config=
-    local charts_dir=charts
-    local owner=
-    local repo=
-    local install_dir=
-    local install_only=
-    local skip_packaging=
-    local skip_existing=
-    local mark_as_latest=true
+  local version="$DEFAULT_CHART_RELEASER_VERSION"
+  local config=
+  local charts_dir=charts
+  local owner=
+  local repo=
+  local install_dir=
+  local install_only=
+  local skip_packaging=
+  local skip_existing=
+  local mark_as_latest=true
 
-    parse_command_line "$@"
+  parse_command_line "$@"
 
-    : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
+  : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
 
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel)
-    pushd "$repo_root" > /dev/null
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel)
+  pushd "$repo_root" >/dev/null
 
-    if ! [[ -n "$skip_packaging" ]]; then
-        echo 'Looking up latest tag...'
-        local latest_tag
-        latest_tag=$(lookup_latest_tag)
+  if [[ -z "$skip_packaging" ]]; then
+    echo 'Looking up latest tag...'
+    local latest_tag
+    latest_tag=$(lookup_latest_tag)
 
-        echo "Discovering changed charts since '$latest_tag'..."
-        local changed_charts=()
-        readarray -t changed_charts <<< "$(lookup_changed_charts "$latest_tag")"
+    echo "Discovering changed charts since '$latest_tag'..."
+    local changed_charts=()
+    readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
 
-        if [[ -n "${changed_charts[*]}" ]]; then
-            install_chart_releaser
+    if [[ -n "${changed_charts[*]}" ]]; then
+      install_chart_releaser
 
-            rm -rf .cr-release-packages
-            mkdir -p .cr-release-packages
+      rm -rf .cr-release-packages
+      mkdir -p .cr-release-packages
 
-            rm -rf .cr-index
-            mkdir -p .cr-index
+      rm -rf .cr-index
+      mkdir -p .cr-index
 
-            for chart in "${changed_charts[@]}"; do
-                if [[ -d "$chart" ]]; then
-                    package_chart "$chart"
-                else
-                    echo "Chart '$chart' no longer exists in repo. Skipping it..."
-                fi
-            done
-
-            release_charts
-            update_index
+      for chart in "${changed_charts[@]}"; do
+        if [[ -d "$chart" ]]; then
+          package_chart "$chart"
         else
-            echo "Nothing to do. No chart changes detected."
+          echo "Nothing to do. No chart changes detected."
         fi
-    else
-        install_chart_releaser
-        rm -rf .cr-index
-        mkdir -p .cr-index
-        release_charts
-        update_index
-    fi
+      done
 
-    popd > /dev/null
+      release_charts
+      update_index
+      echo "changed_charts=$(
+        IFS=,
+        echo "${changed_charts[*]}"
+      )" >changed_charts.txt
+    else
+      echo "Nothing to do. No chart changes detected."
+      echo "changed_charts=" >changed_charts.txt
+    fi
+  else
+    install_chart_releaser
+    rm -rf .cr-index
+    mkdir -p .cr-index
+    release_charts
+    update_index
+  fi
+
+  echo "chart_version=${latest_tag}" >chart_version.txt
+
+  popd >/dev/null
 }
 
 parse_command_line() {
-    while :; do
-        case "${1:-}" in
-            -h|--help)
-                show_help
-                exit
-                ;;
-            --config)
-                if [[ -n "${2:-}" ]]; then
-                    config="$2"
-                    shift
-                else
-                    echo "ERROR: '--config' cannot be empty." >&2
-                    show_help
-                    exit 1
-                fi
-                ;;
-            -v|--version)
-                if [[ -n "${2:-}" ]]; then
-                    version="$2"
-                    shift
-                else
-                    echo "ERROR: '-v|--version' cannot be empty." >&2
-                    show_help
-                    exit 1
-                fi
-                ;;
-            -d|--charts-dir)
-                if [[ -n "${2:-}" ]]; then
-                    charts_dir="$2"
-                    shift
-                else
-                    echo "ERROR: '-d|--charts-dir' cannot be empty." >&2
-                    show_help
-                    exit 1
-                fi
-                ;;
-            -o|--owner)
-                if [[ -n "${2:-}" ]]; then
-                    owner="$2"
-                    shift
-                else
-                    echo "ERROR: '--owner' cannot be empty." >&2
-                    show_help
-                    exit 1
-                fi
-                ;;
-            -r|--repo)
-                if [[ -n "${2:-}" ]]; then
-                    repo="$2"
-                    shift
-                else
-                    echo "ERROR: '--repo' cannot be empty." >&2
-                    show_help
-                    exit 1
-                fi
-                ;;
-            -n|--install-dir)
-                if [[ -n "${2:-}" ]]; then
-                    install_dir="$2"
-                    shift
-                fi
-                ;;
-            -i|--install-only)
-                if [[ -n "${2:-}" ]]; then
-                    install_only="$2"
-                    shift
-                fi
-                ;;
-            -s|--skip-packaging)
-                if [[ -n "${2:-}" ]]; then
-                    skip_packaging="$2"
-                    shift
-                fi
-                ;;
-            --skip-existing)
-                if [[ -n "${2:-}" ]]; then
-                    skip_existing="$2"
-                    shift
-                fi
-                ;;
-            -l|--mark-as-latest)
-                if [[ -n "${2:-}" ]]; then
-                    mark_as_latest="$2"
-                    shift
-                fi
-                ;;
-            *)
-                break
-                ;;
-        esac
-
+  while :; do
+    case "${1:-}" in
+    -h | --help)
+      show_help
+      exit
+      ;;
+    --config)
+      if [[ -n "${2:-}" ]]; then
+        config="$2"
         shift
-    done
-
-    if [[ -z "$owner" ]]; then
-        echo "ERROR: '-o|--owner' is required." >&2
+      else
+        echo "ERROR: '--config' cannot be empty." >&2
         show_help
         exit 1
-    fi
-
-    if [[ -z "$repo" ]]; then
-        echo "ERROR: '-r|--repo' is required." >&2
+      fi
+      ;;
+    -v | --version)
+      if [[ -n "${2:-}" ]]; then
+        version="$2"
+        shift
+      else
+        echo "ERROR: '-v|--version' cannot be empty." >&2
         show_help
         exit 1
-    fi
+      fi
+      ;;
+    -d | --charts-dir)
+      if [[ -n "${2:-}" ]]; then
+        charts_dir="$2"
+        shift
+      else
+        echo "ERROR: '-d|--charts-dir' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
+    -o | --owner)
+      if [[ -n "${2:-}" ]]; then
+        owner="$2"
+        shift
+      else
+        echo "ERROR: '--owner' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
+    -r | --repo)
+      if [[ -n "${2:-}" ]]; then
+        repo="$2"
+        shift
+      else
+        echo "ERROR: '--repo' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
+    -n | --install-dir)
+      if [[ -n "${2:-}" ]]; then
+        install_dir="$2"
+        shift
+      fi
+      ;;
+    -i | --install-only)
+      if [[ -n "${2:-}" ]]; then
+        install_only="$2"
+        shift
+      fi
+      ;;
+    -s | --skip-packaging)
+      if [[ -n "${2:-}" ]]; then
+        skip_packaging="$2"
+        shift
+      fi
+      ;;
+    --skip-existing)
+      if [[ -n "${2:-}" ]]; then
+        skip_existing="$2"
+        shift
+      fi
+      ;;
+    -l | --mark-as-latest)
+      if [[ -n "${2:-}" ]]; then
+        mark_as_latest="$2"
+        shift
+      fi
+      ;;
+    *)
+      break
+      ;;
+    esac
 
-    if [[ -z "$install_dir" ]]; then
-        local arch
-        arch=$(uname -m)
-        install_dir="$RUNNER_TOOL_CACHE/cr/$version/$arch"
-    fi
+    shift
+  done
 
-    if [[ -n "$install_only" ]]; then
-        echo "Will install cr tool and not run it..."
-        install_chart_releaser
-        exit 0
-    fi
+  if [[ -z "$owner" ]]; then
+    echo "ERROR: '-o|--owner' is required." >&2
+    show_help
+    exit 1
+  fi
+
+  if [[ -z "$repo" ]]; then
+    echo "ERROR: '-r|--repo' is required." >&2
+    show_help
+    exit 1
+  fi
+
+  if [[ -z "$install_dir" ]]; then
+    local arch
+    arch=$(uname -m)
+    install_dir="$RUNNER_TOOL_CACHE/cr/$version/$arch"
+  fi
+
+  if [[ -n "$install_only" ]]; then
+    echo "Will install cr tool and not run it..."
+    install_chart_releaser
+    exit 0
+  fi
 }
 
 install_chart_releaser() {
-    if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
-        echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
-        exit 1
-    fi
+  if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
+    echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
+    exit 1
+  fi
 
-    if [[ ! -d "$install_dir" ]]; then
-        mkdir -p "$install_dir"
+  if [[ ! -d "$install_dir" ]]; then
+    mkdir -p "$install_dir"
 
-        echo "Installing chart-releaser on $install_dir..."
-        curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
-        tar -xzf cr.tar.gz -C "$install_dir"
-        rm -f cr.tar.gz
-    fi
+    echo "Installing chart-releaser on $install_dir..."
+    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
+    tar -xzf cr.tar.gz -C "$install_dir"
+    rm -f cr.tar.gz
+  fi
 
-    echo 'Adding cr directory to PATH...'
-    export PATH="$install_dir:$PATH"
+  echo 'Adding cr directory to PATH...'
+  export PATH="$install_dir:$PATH"
 }
 
 lookup_latest_tag() {
-    git fetch --tags > /dev/null 2>&1
+  git fetch --tags >/dev/null 2>&1
 
-    if ! git describe --tags --abbrev=0 HEAD~ 2> /dev/null; then
-        git rev-list --max-parents=0 --first-parent HEAD
-    fi
+  if ! git describe --tags --abbrev=0 HEAD~ 2>/dev/null; then
+    git rev-list --max-parents=0 --first-parent HEAD
+  fi
 }
 
 filter_charts() {
-    while read -r chart; do
-        [[ ! -d "$chart" ]] && continue
-        local file="$chart/Chart.yaml"
-        if [[ -f "$file" ]]; then
-            echo "$chart"
-        else
-           echo "WARNING: $file is missing, assuming that '$chart' is not a Helm chart. Skipping." 1>&2
-        fi
-    done
+  while read -r chart; do
+    [[ ! -d "$chart" ]] && continue
+    local file="$chart/Chart.yaml"
+    if [[ -f "$file" ]]; then
+      echo "$chart"
+    else
+      echo "WARNING: $file is missing, assuming that '$chart' is not a Helm chart. Skipping." 1>&2
+    fi
+  done
 }
 
 lookup_changed_charts() {
-    local commit="$1"
+  local commit="$1"
 
-    local changed_files
-    changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
+  local changed_files
+  changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
 
-    local depth=$(( $(tr "/" "\n" <<< "$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1 ))
-    local fields="1-${depth}"
+  local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
+  local fields="1-${depth}"
 
-    cut -d '/' -f "$fields" <<< "$changed_files" | uniq | filter_charts
+  cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
 }
 
 package_chart() {
-    local chart="$1"
+  local chart="$1"
 
-    local args=("$chart" --package-path .cr-release-packages)
-    if [[ -n "$config" ]]; then
-        args+=(--config "$config")
-    fi
+  local args=("$chart" --package-path .cr-release-packages)
+  if [[ -n "$config" ]]; then
+    args+=(--config "$config")
+  fi
 
-    echo "Packaging chart '$chart'..."
-    cr package "${args[@]}"
+  echo "Packaging chart '$chart'..."
+  cr package "${args[@]}"
 }
 
 release_charts() {
-    local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
-    if [[ -n "$config" ]]; then
-        args+=(--config "$config")
-    fi
-    if [[ -n "$skip_existing" ]]; then
-        args+=(--skip-existing)
-    fi
-    if [[ "$mark_as_latest" = false ]]; then
-        args+=(--make-release-latest=false)
-    fi
+  local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
+  if [[ -n "$config" ]]; then
+    args+=(--config "$config")
+  fi
+  if [[ -n "$skip_existing" ]]; then
+    args+=(--skip-existing)
+  fi
+  if [[ "$mark_as_latest" = false ]]; then
+    args+=(--make-release-latest=false)
+  fi
 
-    echo 'Releasing charts...'
-    cr upload "${args[@]}"
+  echo 'Releasing charts...'
+  cr upload "${args[@]}"
 }
 
 update_index() {
-    local args=(-o "$owner" -r "$repo" --push)
-    if [[ -n "$config" ]]; then
-        args+=(--config "$config")
-    fi
+  local args=(-o "$owner" -r "$repo" --push)
+  if [[ -n "$config" ]]; then
+    args+=(--config "$config")
+  fi
 
-    echo 'Updating charts repo index...'
-    cr index "${args[@]}"
+  echo 'Updating charts repo index...'
+  cr index "${args[@]}"
 }
 
 main "$@"
