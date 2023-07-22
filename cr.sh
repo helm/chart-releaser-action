@@ -28,6 +28,7 @@ Usage: $(basename "$0") <options>
     -v, --version            The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
         --config             The path to the chart-releaser config file
     -d, --charts-dir         The charts directory (default: charts)
+    -m, --multi-dir          The list of directories with charts separated by comma
     -o, --owner              The repo owner
     -r, --repo               The repo name
     -n, --install-dir        The Path to install the cr tool
@@ -42,6 +43,7 @@ main() {
   local version="$DEFAULT_CHART_RELEASER_VERSION"
   local config=
   local charts_dir=charts
+  local multi_dir=
   local owner=
   local repo=
   local install_dir=
@@ -65,7 +67,14 @@ main() {
 
     echo "Discovering changed charts since '$latest_tag'..."
     local changed_charts=()
-    readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
+    if [[ -z "$multi_dir" ]]; then
+      readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag" "$charts_dir")"
+    else
+      for chart_dir in "${multi_dir[@]}"; do
+        readarray -t -O"${#changed_charts[@]}" changed_charts <<<"$(lookup_changed_charts "$latest_tag" "$chart_dir")"
+      done
+    fi
+    echo "Changes detected in ${changed_charts[*]}"
 
     if [[ -n "${changed_charts[*]}" ]]; then
       install_chart_releaser
@@ -142,6 +151,12 @@ parse_command_line() {
         echo "ERROR: '-d|--charts-dir' cannot be empty." >&2
         show_help
         exit 1
+      fi
+      ;;
+    -m | --multi-dir)
+      if [[ -n "${2:-}" ]]; then
+        IFS=',' read -r -a multi_dir <<< "$2"
+        shift
       fi
       ;;
     -o | --owner)
@@ -270,9 +285,9 @@ lookup_changed_charts() {
   local commit="$1"
 
   local changed_files
-  changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
+  changed_files=$(git diff --find-renames --name-only "$commit" -- "$2")
 
-  local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
+  local depth=$(($(tr "/" "\n" <<<"$2" | sed '/^\(\.\)*$/d' | wc -l) + 1))
   local fields="1-${depth}"
 
   cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts

@@ -16,6 +16,9 @@ inputs:
     description: The charts directory
     required: false
     default: charts
+  multi_dir:
+    description: "Comma separated list of charts directories"
+    required: false
   install_dir:
     description: "Where to install the cr tool"
     required: false
@@ -49,7 +52,11 @@ runs:
         repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
 
         args=(--owner "$owner" --repo "$repo")
-        args+=(--charts-dir "${{ inputs.charts_dir }}")
+        if [[ -z "$multi_dir" ]]; then
+          args+=(--charts-dir "${{ inputs.charts_dir }}")
+        else
+          args+=(--multi-dir "${{ inputs.multi_dir }}")
+        fi
 
         if [[ -n "${{ inputs.version }}" ]]; then
             args+=(--version "${{ inputs.version }}")
