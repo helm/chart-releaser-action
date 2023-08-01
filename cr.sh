@@ -302,7 +302,11 @@ release_charts() {
     args+=(--config "$config")
   fi
   if [[ -n "$skip_existing" ]]; then
-    args+=(--skip-existing)
+    if [[ -n "$packages_with_index" ]]; then
+      args+=(--packages-with-index --push --skip-existing)
+    elif [[ -n "$skip_existing" ]]; then
+      args+=(--skip-existing)
+    fi
   fi
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
@@ -316,6 +320,9 @@ update_index() {
   local args=(-o "$owner" -r "$repo" --push)
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
+  fi
+  if [[ -n "$packages_with_index" ]]; then
+    args+=(--packages-with-index --index-path .)
   fi
 
   echo 'Updating charts repo index...'
