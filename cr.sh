@@ -249,10 +249,26 @@ install_chart_releaser() {
 lookup_latest_tag() {
   git fetch --tags >/dev/null 2>&1
 
-  if ! git describe --tags --abbrev=0 HEAD~ 2>/dev/null; then
-    git rev-list --max-parents=0 --first-parent HEAD
+  if git symbolic-ref --short -q HEAD; then
+    if ! git describe --tags --abbrev=0 HEAD~ 2>/dev/null; then
+      git rev-list --max-parents=0 --first-parent HEAD
+    fi
+  else
+    # In a detached HEAD state, such as when the pipeline
+    # is triggered by a push on a tag commit, we need to look back
+    # by date
+    current_commit=$(git rev-parse HEAD)
+    for tag in $(git tag --sort=-creatordate); do
+      if [ $(git rev-parse "$tag") = "$current_commit" ]; then
+        continue
+      else
+        echo "$tag"
+        break
+      fi
+    done
   fi
 }
+
 
 filter_charts() {
   while read -r chart; do
@@ -269,14 +285,20 @@ filter_charts() {
 lookup_changed_charts() {
   local commit="$1"
 
-  local changed_files
-  changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
+  if [ -z "$commit" ]; then
+    # If no commit is given (i.e., no previous tag), consider all charts.
+    find "$charts_dir" -maxdepth 1 -type d | filter_charts
+  else
+    local changed_files
+    changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
 
-  local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
-  local fields="1-${depth}"
+    local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
+    local fields="1-${depth}"
 
-  cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
+    cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
+  fi
 }
+
 
 package_chart() {
   local chart="$1"
