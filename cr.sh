@@ -49,6 +49,7 @@ main() {
   local skip_packaging=
   local skip_existing=
   local mark_as_latest=true
+  local packages_with_index=false
 
   parse_command_line "$@"
 
