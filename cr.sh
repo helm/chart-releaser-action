@@ -302,12 +302,10 @@ release_charts() {
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
-  if [[ -n "$skip_existing" ]]; then
-    if [[ -n "$packages_with_index" ]]; then
-      args+=(--packages-with-index --push --skip-existing)
-    elif [[ -n "$skip_existing" ]]; then
-      args+=(--skip-existing)
-    fi
+  if [[ -n "$packages_with_index" ]]; then
+    args+=(--packages-with-index --push --skip-existing)
+  elif [[ -n "$skip_existing" ]]; then
+    args+=(--skip-existing)
   fi
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
