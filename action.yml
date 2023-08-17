@@ -37,6 +37,8 @@ inputs:
     required: false
   pages_branch:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
+  exclude_tags:
+    description: "Tags matching this glob are excluded when looking for the latest release"
     required: false
 outputs:
   changed_charts:
@@ -96,6 +98,10 @@ runs:
 
         if [[ -n "${{ inputs.pages_branch }}" ]]; then
             args+=(--pages-branch "${{ inputs.pages_branch }}")
+        fi
+        
+        if [[ -n "${{ inputs.exclude_tags }}" ]]; then
+            args+=(--exclude-tags "${{ inputs.exclude_tags }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

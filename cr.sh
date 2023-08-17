@@ -37,6 +37,7 @@ Usage: $(basename "$0") <options>
         --skip-existing           Skip package upload if release exists
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+    -e, --exclude-tags            Tags matching this glob are excluded when looking for the latest release
 EOF
 }
 
@@ -53,6 +54,7 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local exclude_tags=
 
   parse_command_line "$@"
 
@@ -210,6 +212,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    -e | --exclude-tags)
+      if [[ -n "${2:-}" ]]; then
+        exclude_tags="$2"
+        shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -264,8 +272,12 @@ install_chart_releaser() {
 
 lookup_latest_tag() {
   git fetch --tags >/dev/null 2>&1
+  local describe_args=(--tags --abbrev=0)
+    if [[ -n "$exclude_tags" ]]; then
+    describe_args+=(--exclude="$exclude_tags")
+  fi
 
-  if ! git describe --tags --abbrev=0 HEAD~ 2>/dev/null; then
+  if ! git describe "${describe_args[@]}" HEAD~ 2>/dev/null; then
     git rev-list --max-parents=0 --first-parent HEAD
   fi
 }
