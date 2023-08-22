@@ -19,6 +19,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
+- `skip_existing`: Skip package upload if release/tag already exists
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
 
 ### Outputs
