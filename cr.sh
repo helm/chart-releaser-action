@@ -49,6 +49,7 @@ main() {
   local skip_packaging=
   local skip_existing=
   local mark_as_latest=true
+  local packages_with_index=false
 
   parse_command_line "$@"
 
@@ -194,6 +195,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --packages-with-index)
+      if [[ -n "${2:-}" ]]; then
+        packages_with_index="$2"
+        shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -295,7 +302,9 @@ release_charts() {
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
-  if [[ -n "$skip_existing" ]]; then
+  if [[ -n "$packages_with_index" ]]; then
+    args+=(--packages-with-index --push --skip-existing)
+  elif [[ -n "$skip_existing" ]]; then
     args+=(--skip-existing)
   fi
   if [[ "$mark_as_latest" = false ]]; then
@@ -310,6 +319,9 @@ update_index() {
   local args=(-o "$owner" -r "$repo" --push)
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
+  fi
+  if [[ -n "$packages_with_index" ]]; then
+    args+=(--packages-with-index --index-path .)
   fi
 
   echo 'Updating charts repo index...'

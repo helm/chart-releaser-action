@@ -20,6 +20,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `charts_dir`: The charts directory
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
+- `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
 
 ### Outputs
 
