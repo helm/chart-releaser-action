@@ -30,6 +30,7 @@ Usage: $(basename "$0") <options>
     -d, --charts-dir              The charts directory (default: charts)
     -o, --owner                   The repo owner
     -r, --repo                    The repo name
+        --pages-branch            The repo pages branch
     -n, --install-dir             The Path to install the cr tool
     -i, --install-only            Just install the cr tool
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
@@ -51,6 +52,7 @@ main() {
   local skip_existing=
   local mark_as_latest=true
   local packages_with_index=false
+  local pages_branch=
 
   parse_command_line "$@"
 
@@ -164,6 +166,12 @@ parse_command_line() {
         echo "ERROR: '--repo' cannot be empty." >&2
         show_help
         exit 1
+      fi
+      ;;
+    --pages-branch)
+      if [[ -n "${2:-}" ]]; then
+        pages_branch="$2"
+        shift
       fi
       ;;
     -n | --install-dir)
@@ -311,6 +319,9 @@ release_charts() {
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
   fi
+  if [[ -n "$pages_branch" ]]; then
+    args+=(--pages-branch "$pages_branch")
+  fi
 
   echo 'Releasing charts...'
   cr upload "${args[@]}"
@@ -323,6 +334,9 @@ update_index() {
   fi
   if [[ -n "$packages_with_index" ]]; then
     args+=(--packages-with-index --index-path .)
+  fi
+  if [[ -n "$pages_branch" ]]; then
+    args+=(--pages-branch "$pages_branch")
   fi
 
   echo 'Updating charts repo index...'
