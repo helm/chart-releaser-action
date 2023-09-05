@@ -18,7 +18,7 @@ jobs:
       statuses: none
     name: Install chart-releaser and test presence in path
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install chart-releaser
       uses: ./
       with:
@@ -49,7 +49,7 @@ jobs:
       statuses: none
     name: Install chart-releaser and run it
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install chart-releaser
       uses: ./
       env:
