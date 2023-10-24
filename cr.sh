@@ -36,6 +36,7 @@ Usage: $(basename "$0") <options>
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
+        --generate-release-notes  Automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
 }

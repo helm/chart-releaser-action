@@ -32,6 +32,10 @@ inputs:
     description: Mark the created GitHub release as 'latest'
     required: false
     default: true
+  generate_release_notes:
+    description: Automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases
+    required: false
+    default: true
   packages_with_index:
     description: "Upload chart packages directly into publishing branch"
     required: false
@@ -88,6 +92,10 @@ runs:
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
             args+=(--mark-as-latest "${{ inputs.mark_as_latest }}")
+        fi
+
+        if [[ -n "${{ inputs.generate_release_notes }}" ]]; then
+            args+=(--generate-release-notes "${{ inputs.generate_release_notes }}")
         fi
 
         if [[ -n "${{ inputs.packages_with_index }}" ]]; then
