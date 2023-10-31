@@ -35,6 +35,7 @@ inputs:
   packages_with_index:
     description: "Upload chart packages directly into publishing branch"
     required: false
+    default: false
   pages_branch:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
