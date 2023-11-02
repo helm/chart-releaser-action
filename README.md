@@ -69,7 +69,7 @@ jobs:
         uses: azure/setup-helm@v3
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
+        uses: helm/chart-releaser-action@v1.6.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -83,7 +83,7 @@ It does this – during every push to `main` – by checking each chart in your 
 
 ```yaml
 - name: Run chart-releaser
-  uses: helm/chart-releaser-action@v1.5.0
+  uses: helm/chart-releaser-action@v1.6.0
   with:
     charts_dir: charts
     config: cr.yaml

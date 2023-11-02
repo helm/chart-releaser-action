@@ -1,3 +1,17 @@
+# Copyright The Helm Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 name: "Helm Chart Releaser"
 description: "Host a Helm charts repo on GitHub Pages"
 author: "The Helm authors"
@@ -6,9 +20,9 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v1.6.0)"
+    description: "The chart-releaser version to use (default: v1.6.1)"
     required: false
-    default: v1.6.0
+    default: v1.6.1
   config:
     description: "The relative path to the chart-releaser config file"
     required: false
