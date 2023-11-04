@@ -36,6 +36,7 @@ Usage: $(basename "$0") <options>
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
+        --generate-release-notes  Automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
 }
@@ -51,6 +52,7 @@ main() {
   local skip_packaging=
   local skip_existing=
   local mark_as_latest=true
+  local generate_release_notes=true
   local packages_with_index=false
   local pages_branch=
 
@@ -198,6 +200,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --generate-release-notes)
+      if [[ -n "${2:-}" ]]; then
+        generate_release_notes="$2"
+        shift
+      fi
+      ;;
     -l | --mark-as-latest)
       if [[ -n "${2:-}" ]]; then
         mark_as_latest="$2"
@@ -318,6 +326,9 @@ release_charts() {
   fi
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
+  fi
+  if [[ "$generate_release_notes" = true ]]; then
+    args+=(--generate-release-notes)
   fi
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
