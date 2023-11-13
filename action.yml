@@ -20,9 +20,9 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v1.6.1)"
+    description: "The chart-releaser version to use (default: v1.6.1-gxf)"
     required: false
-    default: v1.6.1
+    default: v1.6.1-gxf
   config:
     description: "The relative path to the chart-releaser config file"
     required: false
@@ -41,6 +41,9 @@ inputs:
     required: false
   skip_existing:
     description: "Skip package upload if release exists"
+    required: false
+  use_existing_release:
+    description: "Add packages to existing release instead of creating new release"
     required: false
   mark_as_latest:
     description: Mark the created GitHub release as 'latest'
@@ -99,6 +102,10 @@ runs:
 
         if [[ -n "${{ inputs.skip_existing }}" ]]; then
             args+=(--skip-existing "${{ inputs.skip_existing }}")
+        fi
+
+        if [[ -n "${{ inputs.use_existing_release }}" ]]; then
+            args+=(--use-existing-release "${{ inputs.use_existing_release }}")
         fi
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
