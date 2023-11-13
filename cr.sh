@@ -35,6 +35,7 @@ Usage: $(basename "$0") <options>
     -i, --install-only            Just install the cr tool
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
+        --use-existing-release    Add packages to existing release instead of creating new release
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
@@ -198,6 +199,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --use-existing-release)
+      if [[ -n "${2:-}" ]]; then
+        use_existing_release="$2"
+        shift
+      fi
+      ;;
     -l | --mark-as-latest)
       if [[ -n "${2:-}" ]]; then
         mark_as_latest="$2"
@@ -315,6 +322,8 @@ release_charts() {
     args+=(--packages-with-index --push --skip-existing)
   elif [[ -n "$skip_existing" ]]; then
     args+=(--skip-existing)
+  elif [[ -n "$use_existing_release" ]]; then
+    args+=(--use-existing-release)
   fi
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
