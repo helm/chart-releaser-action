@@ -45,6 +45,9 @@ inputs:
   use_existing_release:
     description: "Add packages to existing release instead of creating new release"
     required: false
+  release_name_template:
+    description: "Go template for computing release names, using chart metadata (default '{{ .Name }}-{{ .Version }}')"
+    required: false
   mark_as_latest:
     description: Mark the created GitHub release as 'latest'
     required: false
@@ -106,6 +109,10 @@ runs:
 
         if [[ -n "${{ inputs.use_existing_release }}" ]]; then
             args+=(--use-existing-release "${{ inputs.use_existing_release }}")
+        fi
+
+        if [[ -n "${{ inputs.release_name_template }}" ]]; then
+            args+=(--release-name-template "${{ inputs.release_name_template }}")
         fi
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then

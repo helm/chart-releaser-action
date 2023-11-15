@@ -36,6 +36,7 @@ Usage: $(basename "$0") <options>
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
         --use-existing-release    Add packages to existing release instead of creating new release
+        --release-name-template   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
@@ -51,6 +52,8 @@ main() {
   local install_only=
   local skip_packaging=
   local skip_existing=
+  local use_existing_release=
+  local release_name_template=
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
@@ -205,6 +208,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --release-name-template)
+      if [[ -n "${2:-}" ]]; then
+        release_name_template="$2"
+        shift
+      fi
+      ;;
     -l | --mark-as-latest)
       if [[ -n "${2:-}" ]]; then
         mark_as_latest="$2"
@@ -328,6 +337,9 @@ release_charts() {
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
   fi
+  if [[ -n "$release_name_template" ]]; then
+    args+=(--release-name-template "${release_name_template}")
+  fi
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
   fi
@@ -343,6 +355,9 @@ update_index() {
   fi
   if [[ "$packages_with_index" = true ]]; then
     args+=(--packages-with-index --index-path .)
+  fi
+  if [[ -n "$release_name_template" ]]; then
+    args+=(--release-name-template "${release_name_template}")
   fi
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
