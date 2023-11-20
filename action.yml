@@ -42,6 +42,9 @@ inputs:
   skip_existing:
     description: "Skip package upload if release exists"
     required: false
+  skip_upload:
+    description: "Skip package upload"
+    required: false
   mark_as_latest:
     description: Mark the created GitHub release as 'latest'
     required: false
@@ -99,6 +102,10 @@ runs:
 
         if [[ -n "${{ inputs.skip_existing }}" ]]; then
             args+=(--skip-existing "${{ inputs.skip_existing }}")
+        fi
+
+        if [[ -n "${{ inputs.skip_upload }}" ]]; then
+            args+=(--skip-upload "${{ inputs.skip_upload }}")
         fi
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then
