@@ -38,6 +38,7 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+    -b  --skip-packing-option     help to install skip packagins 
 EOF
 }
 
@@ -48,7 +49,7 @@ main() {
   local owner=
   local repo=
   local install_dir=
-  local install_only=
+  local skip_packaing=
   local skip_packaging=
   local skip_existing=
   local skip_upload=
@@ -184,7 +185,7 @@ parse_command_line() {
       ;;
     -i | --install-only)
       if [[ -n "${2:-}" ]]; then
-        install_only="$2"
+        skip_packaing="$2"
         shift
       fi
       ;;
@@ -244,7 +245,7 @@ parse_command_line() {
     install_dir="$RUNNER_TOOL_CACHE/cr/$version/$arch"
   fi
 
-  if [[ -n "$install_only" ]]; then
+  if [[ -n "$skip_packaing" ]]; then
     echo "Will install cr tool and not run it..."
     install_chart_releaser
     exit 0
