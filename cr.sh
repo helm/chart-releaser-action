@@ -56,6 +56,7 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local skip_packing_online=
 
   parse_command_line "$@"
 
