@@ -56,6 +56,13 @@ inputs:
   pages_branch:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
+  release_notes_file:
+    description: "Markdown file with chart release notes read from the chart package (for example 'RELEASE_NOTES.md' in charts directory). If it is set to empty string, or the file is not found, the chart description will be used instead."
+    required: false
+    default: 'RELEASE_NOTES.md'
+  generate_release_notes:
+    description: "Whether to automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases"
+    required: false
 outputs:
   changed_charts:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
@@ -118,6 +125,14 @@ runs:
 
         if [[ -n "${{ inputs.pages_branch }}" ]]; then
             args+=(--pages-branch "${{ inputs.pages_branch }}")
+        fi
+
+        if [[ -n "${{ inputs.release_notes_file }}" ]]; then
+            args+=(--release-notes-file "${{ inputs.release_notes_file }}")
+        fi
+
+        if [[ "${{ inputs.generate_release_notes }}" = "true" ]]; then
+            args+=(--generate-release-notes "true")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"

@@ -55,6 +55,8 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local release_notes_file=
+  local generate_release_notes=
 
   parse_command_line "$@"
 
@@ -218,6 +220,18 @@ parse_command_line() {
         shift
       fi
       ;;
+    --release-notes-file)
+      if [[ -n "${2:-}" ]]; then
+        release_notes_file="$2"
+        shift
+      fi
+      ;;
+    --generate-release-notes)
+      if [[ -n "${2:-}" ]]; then
+        generate_release_notes="$2"
+        shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -329,6 +343,12 @@ release_charts() {
   fi
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
+  fi
+  if [[ -n "$release_notes_file" ]]; then
+    args+=(--release-notes-file "$release_notes_file")
+  fi
+  if [[ "$generate_release_notes" = "true" ]]; then
+    args+=(--generate-release-notes)
   fi
 
   echo 'Releasing charts...'
