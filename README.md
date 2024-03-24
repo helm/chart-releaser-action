@@ -30,6 +30,11 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `changed_charts`: A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them.
 - `chart_version`: The version of the most recently generated charts; will be set even if no charts have been updated since the last run.
 
+### Changed charts detection
+
+If [chart-testing](https://github.com/helm/chart-testing) is present in the PATH, it will be used to detect changed charts using `ct list-changed` command.
+If not present, it will fallback to a simpler method of detection using `git diff`.
+
 ### Environment variables
 
 - `CR_TOKEN` (required): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
@@ -68,6 +73,10 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3
+
+      # optional, setup chart-testing for changed charts detection
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.5.0
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
