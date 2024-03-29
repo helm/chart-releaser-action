@@ -38,6 +38,8 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+        --index-path              The path to the index file
+        --pages-index-path        The path to the index file in the pages branch
 EOF
 }
 
