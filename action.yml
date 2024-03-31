@@ -56,6 +56,12 @@ inputs:
   pages_branch:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
+  index_path:
+    description: "Path to index file (default .cr-index/index.yaml)"
+    required: false
+  pages_index_path:
+    description: "The GitHub pages index path (default index.yaml)"
+    required: false
 outputs:
   changed_charts:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
@@ -118,6 +124,14 @@ runs:
 
         if [[ -n "${{ inputs.pages_branch }}" ]]; then
             args+=(--pages-branch "${{ inputs.pages_branch }}")
+        fi
+
+        if [[ -n "${{ inputs.index_path }}" ]]; then
+            args+=(--index-path "${{ inputs.index_path }}")
+        fi
+
+        if [[ -n "${{ inputs.pages_index_path }}" ]]; then
+            args+=(--pages-index-path "${{ inputs.pages_index_path }}")
         fi
 
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
