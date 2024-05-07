@@ -69,8 +69,12 @@ runs:
   steps:
     - id: release
       run: |
-        owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
-        repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+        repo_set=${GITHUB_REPOSITORY}
+        if [[ -n "${{ inputs.repository }}" ]]; then
+          repo_set="${{ inputs.repository }}"
+        fi
+        owner=$(cut -d '/' -f 1 <<< "$repo_set")
+        repo=$(cut -d '/' -f 2 <<< "$repo_set")
 
         args=(--owner "$owner" --repo "$repo")
         args+=(--charts-dir "${{ inputs.charts_dir }}")
