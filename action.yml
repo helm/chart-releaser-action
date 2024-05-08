@@ -26,6 +26,12 @@ inputs:
   config:
     description: "The relative path to the chart-releaser config file"
     required: false
+  repository:
+    description: "The repository to publish to, if different than the repository running on"
+    required: false
+  commit:
+    description: "The commit to create the release from (required for external repository)"
+    required: false
   charts_dir:
     description: The charts directory
     required: false
@@ -78,6 +84,10 @@ runs:
 
         args=(--owner "$owner" --repo "$repo")
         args+=(--charts-dir "${{ inputs.charts_dir }}")
+
+        if [[ -n "${{ inputs.commit }}" ]]; then
+          args+=(--commit "${{ inputs.commit }}")
+        fi
 
         if [[ -n "${{ inputs.version }}" ]]; then
             args+=(--version "${{ inputs.version }}")
