@@ -30,6 +30,7 @@ Usage: $(basename "$0") <options>
     -d, --charts-dir              The charts directory (default: charts)
     -o, --owner                   The repo owner
     -r, --repo                    The repo name
+    -c, --commit                  The commit to create the release for
         --pages-branch            The repo pages branch
     -n, --install-dir             The Path to install the cr tool
     -i, --install-only            Just install the cr tool
@@ -47,6 +48,7 @@ main() {
   local charts_dir=charts
   local owner=
   local repo=
+  local commit=
   local install_dir=
   local install_only=
   local skip_packaging=
@@ -176,6 +178,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    -c | --commit)
+      if [[ -n "${2:-}" ]]; then
+        commit="$2"
+        shift
+      fi
+      ;;
     -n | --install-dir)
       if [[ -n "${2:-}" ]]; then
         install_dir="$2"
@@ -291,10 +299,10 @@ filter_charts() {
 }
 
 lookup_changed_charts() {
-  local commit="$1"
+  local latest_commit="$1"
 
   local changed_files
-  changed_files=$(git diff --find-renames --name-only "$commit" -- "$charts_dir")
+  changed_files=$(git diff --find-renames --name-only "$latest_commit" -- "$charts_dir")
 
   local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
   local fields="1-${depth}"
@@ -315,7 +323,11 @@ package_chart() {
 }
 
 release_charts() {
-  local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
+  local repo_commit=$(git rev-parse HEAD)
+  if [[ -n "$commit" ]]; then
+    repo_commit="$commit"
+  fi
+  local args=(-o "$owner" -r "$repo" -c "$repo_commit")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
