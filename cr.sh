@@ -17,6 +17,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -x
 
 DEFAULT_CHART_RELEASER_VERSION=v1.6.1
 
@@ -315,7 +316,7 @@ package_chart() {
 }
 
 release_charts() {
-  local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
+  local args=(-o "$owner" -r "$repo")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
@@ -331,7 +332,7 @@ release_charts() {
     args+=(--pages-branch "$pages_branch")
   fi
 
-  echo 'Releasing charts...'
+  echo "Releasing charts...${args[@]}"
   cr upload "${args[@]}"
 }
 
@@ -340,8 +341,10 @@ update_index() {
     echo "Skipping index upload..."
     return
   fi
+  git remote add gh https://github.com/$owner/$repo.git
+  git fetch --all
 
-  local args=(-o "$owner" -r "$repo" --push)
+  local args=(-o "$owner" -r "$repo")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
@@ -352,8 +355,12 @@ update_index() {
     args+=(--pages-branch "$pages_branch")
   fi
 
-  echo 'Updating charts repo index...'
+  echo "Updating charts repo index...${args[@]}"
   cr index "${args[@]}"
+  git checkout -f gh/gh-pages
+  mv .cr-index/index.yaml index.yaml
+  git commit -m "Update version"
+  git push gh gh-pages
 }
 
 main "$@"
