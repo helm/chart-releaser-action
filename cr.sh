@@ -38,6 +38,8 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+        --index-path              The path to the index file
+        --pages-index-path        The path to the index file in the pages branch
 EOF
 }
 
@@ -55,6 +57,8 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local index_path=
+  local pages_index_path=
 
   parse_command_line "$@"
 
@@ -173,6 +177,18 @@ parse_command_line() {
     --pages-branch)
       if [[ -n "${2:-}" ]]; then
         pages_branch="$2"
+        shift
+      fi
+      ;;
+    --index-path)
+      if [[ -n "${2:-}" ]]; then
+        index_path="$2"
+        shift
+      fi
+      ;;
+    --pages-index-path)
+      if [[ -n "${2:-}" ]]; then
+        pages_index_path="$2"
         shift
       fi
       ;;
@@ -350,6 +366,12 @@ update_index() {
   fi
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
+  fi
+  if [[ -n "$index_path" ]]; then
+    args+=(--index-path "$index_path")
+  fi
+  if [[ -n "$pages_index_path" ]]; then
+    args+=(--pages-index-path "$pages_index_path")
   fi
 
   echo 'Updating charts repo index...'
