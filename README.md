@@ -11,7 +11,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 1. A GitHub branch called `gh-pages` to store the published charts.
 1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
-   For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
+   For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://docs.github.com/en/actions/use-cases-and-examples/creating-an-example-workflow)
 
 ### Inputs
 
