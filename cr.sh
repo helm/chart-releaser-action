@@ -316,7 +316,7 @@ package_chart() {
 
 release_charts() {
   if [[ -n "$skip_upload" ]]; then
-    echo "Skipping index upload..."
+    echo "Skipping release upload..."
     return
   fi
   
