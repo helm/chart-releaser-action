@@ -68,8 +68,8 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v4
-          env:
-            GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
