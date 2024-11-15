@@ -85,7 +85,7 @@ main() {
       for chart in "${changed_charts[@]}"; do
         if [[ -d "$chart" ]]; then
           helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm dependencies build "$chart"
+          # helm dependencies build "$chart"
           package_chart "$chart"
         else
           echo "Nothing to do. No chart changes detected."
