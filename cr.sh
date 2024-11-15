@@ -84,6 +84,7 @@ main() {
 
       for chart in "${changed_charts[@]}"; do
         if [[ -d "$chart" ]]; then
+          helm dependencies build "$chart"
           package_chart "$chart"
         else
           echo "Nothing to do. No chart changes detected."
