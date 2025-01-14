@@ -45,6 +45,10 @@ inputs:
   skip_upload:
     description: "Skip package upload"
     required: false
+  skip_release:
+    description: "Skip creating GitHub release and tag, only push artifacts to pages branch"
+    required: false
+    default: false
   mark_as_latest:
     description: Mark the created GitHub release as 'latest'
     required: false
@@ -106,6 +110,10 @@ runs:
 
         if [[ -n "${{ inputs.skip_upload }}" ]]; then
             args+=(--skip-upload "${{ inputs.skip_upload }}")
+        fi
+
+        if [[ -n "${{ inputs.skip_release }}" ]]; then
+            args+=(--skip-release "${{ inputs.skip_release }}")
         fi
 
         if [[ -n "${{ inputs.mark_as_latest }}" ]]; then

@@ -21,6 +21,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for exemple with OCI based repositories) which doen't require the `index.yaml`.
+- `skip_release`: Skip creating GitHub release and tag, only push artifacts to pages branch.
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
 - `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
 - `pages_branch`: Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)

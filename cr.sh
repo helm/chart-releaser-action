@@ -36,6 +36,7 @@ Usage: $(basename "$0") <options>
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
+    --skip-release                Skip creating GitHub release and tag, only push artifacts to branch
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
 EOF
@@ -52,6 +53,7 @@ main() {
   local skip_packaging=
   local skip_existing=
   local skip_upload=
+  local skip_release=false
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
@@ -65,40 +67,50 @@ main() {
   pushd "$repo_root" >/dev/null
 
   if [[ -z "$skip_packaging" ]]; then
-    echo 'Looking up latest tag...'
-    local latest_tag
-    latest_tag=$(lookup_latest_tag)
-
-    echo "Discovering changed charts since '$latest_tag'..."
-    local changed_charts=()
-    readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
-
-    if [[ -n "${changed_charts[*]}" ]]; then
-      install_chart_releaser
-
-      rm -rf .cr-release-packages
-      mkdir -p .cr-release-packages
-
-      rm -rf .cr-index
-      mkdir -p .cr-index
-
-      for chart in "${changed_charts[@]}"; do
+    if [[ "$skip_release" = true ]]; then
+      # Package charts without creating releases
+      for chart in "$charts_dir"/*; do
         if [[ -d "$chart" ]]; then
           package_chart "$chart"
-        else
-          echo "Nothing to do. No chart changes detected."
         fi
       done
-
-      release_charts
       update_index
-      echo "changed_charts=$(
-        IFS=,
-        echo "${changed_charts[*]}"
-      )" >changed_charts.txt
     else
-      echo "Nothing to do. No chart changes detected."
-      echo "changed_charts=" >changed_charts.txt
+      echo 'Looking up latest tag...'
+      local latest_tag
+      latest_tag=$(lookup_latest_tag)
+
+      echo "Discovering changed charts since '$latest_tag'..."
+      local changed_charts=()
+      readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
+
+      if [[ -n "${changed_charts[*]}" ]]; then
+        install_chart_releaser
+
+        rm -rf .cr-release-packages
+        mkdir -p .cr-release-packages
+
+        rm -rf .cr-index
+        mkdir -p .cr-index
+
+        for chart in "${changed_charts[@]}"; do
+          if [[ -d "$chart" ]]; then
+            package_chart "$chart"
+          else
+            echo "Nothing to do. No chart changes detected."
+          fi
+        done
+
+        release_charts
+        update_index
+        echo "changed_charts=$(
+          IFS=,
+          echo "${changed_charts[*]}"
+        )" >changed_charts.txt
+      else
+        echo "Nothing to do. No chart changes detected."
+        echo "changed_charts=" >changed_charts.txt
+      fi
     fi
   else
     install_chart_releaser
@@ -204,6 +216,12 @@ parse_command_line() {
       if [[ -n "${2:-}" ]]; then
           skip_upload="$2"
           shift
+      fi
+      ;;
+    --skip-release)
+      if [[ -n "${2:-}" ]]; then
+        skip_release="$2"
+        shift
       fi
       ;;
     -l | --mark-as-latest)
