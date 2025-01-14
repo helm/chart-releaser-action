@@ -12,3 +12,4 @@ logs/
 
 # Allow .tgz files in the gh-pages branch (important for Helm chart packaging)
 !*.tgz
+ 
