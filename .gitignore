@@ -1,8 +1,14 @@
-.idea
+# IDE and project files
+.idea/
 *.iml
 
+# Node.js dependencies
 node_modules/
 lib/
 
+# Log files
 logs/
 *.log*
+
+# Allow .tgz files in the gh-pages branch (important for Helm chart packaging)
+!*.tgz
