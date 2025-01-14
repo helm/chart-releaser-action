@@ -1,0 +1,47 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+      - main  # Trigger the release workflow when pushing to the main branch
+  # You could also set up a manual trigger using workflow_dispatch:
+  # workflow_dispatch:
+
+jobs:
+  release_charts:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: none
+      checks: none
+      contents: write  # Grant permission to push to gh-pages
+      deployments: none
+      issues: none
+      packages: none
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure the entire history is fetched (important for gh-pages)
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Run chart-releaser action to package and upload charts
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts  # Replace with your actual charts directory if different
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub token to authenticate the action
+
+      - name: Commit and push to gh-pages
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Update charts and index.yaml"
+          git push origin gh-pages
