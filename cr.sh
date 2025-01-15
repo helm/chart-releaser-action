@@ -57,6 +57,7 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local latest_tag=""
 
   parse_command_line "$@"
 
@@ -66,14 +67,25 @@ main() {
   repo_root=$(git rev-parse --show-toplevel)
   pushd "$repo_root" >/dev/null
 
+  install_chart_releaser
+
   if [[ -z "$skip_packaging" ]]; then
     if [[ "$skip_release" = true ]]; then
-      # Package charts without creating releases
+      rm -rf .cr-release-packages
+      mkdir -p .cr-release-packages
+
+      rm -rf .cr-index
+      mkdir -p .cr-index
+
       for chart in "$charts_dir"/*; do
         if [[ -d "$chart" ]]; then
           package_chart "$chart"
         fi
       done
+
+      # Get the version from the packaged chart for output
+      latest_tag=$(ls .cr-release-packages/*.tgz | head -n1 | sed 's/.*\/\(.*\)\.tgz/\1/')
+
       update_index
     else
       echo 'Looking up latest tag...'
@@ -85,8 +97,6 @@ main() {
       readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
 
       if [[ -n "${changed_charts[*]}" ]]; then
-        install_chart_releaser
-
         rm -rf .cr-release-packages
         mkdir -p .cr-release-packages
 
@@ -359,6 +369,27 @@ update_index() {
     return
   fi
 
+  # If skip_release is true, use helm directly
+  if [[ "$skip_release" = true ]]; then
+    echo "Using helm to update index..."
+    git checkout ${pages_branch:-gh-pages} || git checkout -b ${pages_branch:-gh-pages}
+    
+    # Copy packages if needed
+    if [[ "$packages_with_index" = true ]]; then
+      cp .cr-release-packages/*.tgz .
+    fi
+
+    # Generate/update index
+    helm repo index . --url "https://$owner.github.io/$repo"
+
+    # Commit and push
+    git add .
+    git commit -m "Update Helm repository" || echo "No changes to commit"
+    git push origin ${pages_branch:-gh-pages}
+    return
+  fi
+
+  # Original cr index for non-skip_release case
   local args=(-o "$owner" -r "$repo" --push)
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
