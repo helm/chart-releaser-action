@@ -86,6 +86,8 @@ main() {
 
       for chart in "${changed_charts[@]}"; do
         if [[ -d "$chart" ]]; then
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          # helm dependencies build "$chart"
           package_chart "$chart"
         else
           echo "Nothing to do. No chart changes detected."
@@ -327,6 +329,11 @@ package_chart() {
 }
 
 release_charts() {
+  if [[ -n "$skip_upload" ]]; then
+    echo "Skipping release upload..."
+    return
+  fi
+  
   local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
