@@ -20,9 +20,9 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: v1.6.1)"
+    description: "The chart-releaser version to use (default: v1.7.0)"
     required: false
-    default: v1.6.1
+    default: v1.7.0
   config:
     description: "The relative path to the chart-releaser config file"
     required: false
