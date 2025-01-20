@@ -38,6 +38,7 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+        --use-arm                 Use ARM64 binary (default: false)
 EOF
 }
 
@@ -55,6 +56,7 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local use_arm=false
 
   parse_command_line "$@"
 
@@ -218,6 +220,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    --use-arm)
+      if [[ -n "${2:-}" ]]; then
+          use_arm="$2"
+          shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -259,9 +267,12 @@ install_chart_releaser() {
 
   if [[ ! -d "$install_dir" ]]; then
     mkdir -p "$install_dir"
-
+    architecture=linux_amd64
+    if [[ "$use_arm" = true ]]; then
+      architecture=linux_arm64
+    fi
     echo "Installing chart-releaser on $install_dir..."
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_linux_amd64.tar.gz"
+    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
     tar -xzf cr.tar.gz -C "$install_dir"
     rm -f cr.tar.gz
   fi

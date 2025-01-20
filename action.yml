@@ -119,7 +119,10 @@ runs:
         if [[ -n "${{ inputs.pages_branch }}" ]]; then
             args+=(--pages-branch "${{ inputs.pages_branch }}")
         fi
-
+        
+        if [ "${{ runner.arch }}" == "ARM64" ]; then
+            args+=(--use-arm "true")
+        fi
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
 
         if [[ -f changed_charts.txt ]]; then
