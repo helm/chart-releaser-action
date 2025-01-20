@@ -15,7 +15,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.6.0)
+- `version`: The chart-releaser version to use (default: v1.7.0)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -72,7 +72,7 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
+        uses: helm/chart-releaser-action@v1.7.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -86,7 +86,7 @@ It does this – during every push to `main` – by checking each chart in your 
 
 ```yaml
 - name: Run chart-releaser
-  uses: helm/chart-releaser-action@v1.6.0
+  uses: helm/chart-releaser-action@v1.7.0
   with:
     charts_dir: charts
     config: cr.yaml

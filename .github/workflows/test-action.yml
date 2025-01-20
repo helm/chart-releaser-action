@@ -3,20 +3,16 @@ name: test-chart-releaser
 on:
   pull_request:
 
+permissions: {}
+
 jobs:
+
   test_chart_releaser_install_action:
     runs-on: ubuntu-latest
+
     permissions:
-      actions: none
-      checks: none
-      contents: none
-      deployments: none
-      issues: none
-      packages: none
-      pull-requests: none
-      repository-projects: none
-      security-events: none
-      statuses: none
+      contents: read
+
     name: Install chart-releaser and test presence in path
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -27,7 +23,17 @@ jobs:
       env:
         CR_TOKEN: "FAKE_SECRETS"
     - name: Check install!
-      run: cr version
+      run: |
+        cr version
+        CR_VERSION_OUTPUT=$(cr version 2>&1 /dev/null)
+        ACTUAL_VERSION=$(echo "$CR_VERSION_OUTPUT" | grep GitVersion | rev | cut -d ' ' -f1 | rev)
+        if [[ $ACTUAL_VERSION != 'v1.7.0' ]]; then
+          echo 'should be v1.7.0'
+          exit 1
+        else
+          exit 0
+        fi
+      shell: bash
     - name: Check root directory
       run: |
         if ! git diff --stat --exit-code; then
@@ -37,17 +43,10 @@ jobs:
 
   test_chart_releaser_action:
     runs-on: ubuntu-latest
+
     permissions:
-      actions: none
-      checks: none
-      contents: none
-      deployments: none
-      issues: none
-      packages: none
-      pull-requests: none
-      repository-projects: none
-      security-events: none
-      statuses: none
+      contents: read
+
     name: Install chart-releaser and run it
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
