@@ -38,6 +38,7 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+    -c, --commit                  Target commit or branch for the release (default: latest tag on HEAD)
 EOF
 }
 
@@ -55,6 +56,7 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local commit=
 
   parse_command_line "$@"
 
@@ -218,6 +220,12 @@ parse_command_line() {
         shift
       fi
       ;;
+    -c | --commit)
+      if [[ -n "${2:-}" ]]; then
+        commit="$2"
+        shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -315,7 +323,7 @@ package_chart() {
 }
 
 release_charts() {
-  local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
+  local args=(-o "$owner" -r "$repo" -c "$commit")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi

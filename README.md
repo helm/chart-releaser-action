@@ -24,6 +24,10 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
 - `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
 - `pages_branch`: Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)
+- `owner`: The owner of the repository. This is used to create the GitHub release. If not set, the owner will be inferred from the repository URL.
+- `repo`: The name of the repository. This is used to create the GitHub release. If not set, the repository will be inferred from the repository URL.
+- `commit`: The commit sha or the branch to use for the release. If not set, the commit hash will be inferred from the GitHub Actions environment.
+- `workdir`: The working directory where the action will be executed. Useful if you have multiple repository checkouts in your workflow.
 
 ### Outputs
 
