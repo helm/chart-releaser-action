@@ -18,7 +18,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `version`: The chart-releaser version to use (default: v1.7.0)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
-- `repository`: The repository to release (default: the repository the action is running from). If used - make sure to set the appropriate CR_TOKEN for the targeted repository.
+- `repository`: The repository to release (default: $GITHUB_REPOSITORY - the repository the action is running from). If used - make sure to set the appropriate CR_TOKEN for the targeted repository.
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for exemple with OCI based repositories) which doen't require the `index.yaml`.
