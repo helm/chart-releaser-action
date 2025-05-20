@@ -57,7 +57,7 @@ inputs:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
   release_name_template:
-    description: "Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")"
+    description: "Go template for computing release names, using chart metadata (default 'v{{ .Version }}')"
     required: false
     default: "v{{ .Version }}"
 outputs:
