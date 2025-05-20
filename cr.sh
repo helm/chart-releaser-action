@@ -111,12 +111,8 @@ main() {
     install_chart_releaser
     rm -rf .cr-index
     mkdir -p .cr-index
-    if [[ "$skip_existing" = true ]]; then
-      update_index
-    else
-      release_charts
-      update_index
-    fi
+    release_charts
+    update_index
   fi
 
   popd >/dev/null
