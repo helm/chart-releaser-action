@@ -234,6 +234,7 @@ parse_command_line() {
           release_name_template="$2"
           shift
       fi
+      ;;
     *)
       break
       ;;
