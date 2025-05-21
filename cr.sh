@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=v1.7.0
+DEFAULT_CHART_RELEASER_VERSION=0.0.1
 
 show_help() {
   cat <<EOF
