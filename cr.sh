@@ -59,6 +59,7 @@ main() {
   local pages_branch=
   local use_arm=false
   local release_name_template=
+  local draft_release=true
 
   parse_command_line "$@"
 
@@ -235,6 +236,12 @@ parse_command_line() {
           shift
       fi
       ;;
+    --draft-release)
+      if [[ -n "${2:-}" ]]; then
+          draft_release="$2"
+          shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -281,8 +288,11 @@ install_chart_releaser() {
       architecture=linux_arm64
     fi
     echo "Installing chart-releaser on $install_dir..."
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
+    # curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
+    curl -sSLo cr.tar.gz https://github.com/borislavr/chart-releaser-action/releases/download/v${version}/cr-${version}.tgz
     tar -xzf cr.tar.gz -C "$install_dir"
+    mv "${install_dir}/cr-bin" "${install_dir}/cr"
+    chmod +x "${install_dir}/cr"
     rm -f cr.tar.gz
   fi
 
@@ -352,6 +362,9 @@ release_charts() {
   fi
   if [[ -n "$release_name_template" ]]; then
     args+=(--release-name-template "$release_name_template")
+  fi
+  if [[ -n "$draft_release" ]]; then
+    args+=(--draft-release "$draft_release")
   fi
 
   echo 'Releasing charts...'

@@ -60,6 +60,10 @@ inputs:
     description: "Go template for computing release names, using chart metadata (default 'v{{ .Version }}')"
     required: false
     default: "v{{ .Version }}"
+  draft_release:
+    description: "Create a draft release"
+    required: false
+    default: true
 outputs:
   changed_charts:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
@@ -126,6 +130,9 @@ runs:
         
         if [[ -n "${{ inputs.release_name_template }}" ]]; then
             args+=(--release-name-template "${{ inputs.release_name_template }}")
+        fi
+        if [[ -n "${{ inputs.draft_release }}" ]]; then
+            args+=(--draft-release "${{ inputs.draft_release }}")
         fi
         if [ "${{ runner.arch }}" == "ARM64" ]; then
             args+=(--use-arm "true")
