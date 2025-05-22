@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DEFAULT_CHART_RELEASER_VERSION=0.0.1
+DEFAULT_CHART_RELEASER_VERSION=v1.7.0
 
 show_help() {
   cat <<EOF
@@ -39,7 +39,7 @@ Usage: $(basename "$0") <options>
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
         --use-arm                 Use ARM64 binary (default: false)
-        --release-name-template   Go template for computing release names, using chart metadata (default "v{{ .Version }}")
+        --release-name-template   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
 EOF
 }
 
@@ -59,7 +59,6 @@ main() {
   local pages_branch=
   local use_arm=false
   local release_name_template=
-  local draft_release=true
 
   parse_command_line "$@"
 
@@ -236,12 +235,6 @@ parse_command_line() {
           shift
       fi
       ;;
-    --draft-release)
-      if [[ -n "${2:-}" ]]; then
-          draft_release="$2"
-          shift
-      fi
-      ;;
     *)
       break
       ;;
@@ -288,11 +281,8 @@ install_chart_releaser() {
       architecture=linux_arm64
     fi
     echo "Installing chart-releaser on $install_dir..."
-    # curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
-    curl -sSLo cr.tar.gz https://github.com/borislavr/chart-releaser-action/releases/download/v${version}/cr-${version}.tgz
+    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
     tar -xzf cr.tar.gz -C "$install_dir"
-    mv "${install_dir}/cr-bin" "${install_dir}/cr"
-    chmod +x "${install_dir}/cr"
     rm -f cr.tar.gz
   fi
 
@@ -362,9 +352,6 @@ release_charts() {
   fi
   if [[ -n "$release_name_template" ]]; then
     args+=(--release-name-template "$release_name_template")
-  fi
-  if [[ -n "$draft_release" ]]; then
-    args+=(--draft-release "$draft_release")
   fi
 
   echo 'Releasing charts...'

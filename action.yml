@@ -20,9 +20,9 @@ branding:
   icon: anchor
 inputs:
   version:
-    description: "The chart-releaser version to use (default: 0.0.1)"
+    description: "The chart-releaser version to use (default: v1.7.0)"
     required: false
-    default: 0.0.1
+    default: v1.7.0
   config:
     description: "The relative path to the chart-releaser config file"
     required: false
@@ -57,13 +57,10 @@ inputs:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
   release_name_template:
-    description: "Go template for computing release names, using chart metadata (default 'v{{ .Version }}')"
+    description: "Go template for computing release names, using chart metadata (default '{{ .Name }}-{{ .Version }}')"
     required: false
-    default: "v{{ .Version }}"
-  draft_release:
-    description: "Create a draft release"
-    required: false
-    default: true
+    default: "{{ .Name }}-{{ .Version }}"
+
 outputs:
   changed_charts:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
@@ -130,9 +127,6 @@ runs:
         
         if [[ -n "${{ inputs.release_name_template }}" ]]; then
             args+=(--release-name-template "${{ inputs.release_name_template }}")
-        fi
-        if [[ -n "${{ inputs.draft_release }}" ]]; then
-            args+=(--draft-release "${{ inputs.draft_release }}")
         fi
         if [ "${{ runner.arch }}" == "ARM64" ]; then
             args+=(--use-arm "true")
