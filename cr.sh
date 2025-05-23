@@ -39,6 +39,7 @@ Usage: $(basename "$0") <options>
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
         --use-arm                 Use ARM64 binary (default: false)
+        --release-name-template   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
 EOF
 }
 
@@ -57,6 +58,7 @@ main() {
   local packages_with_index=false
   local pages_branch=
   local use_arm=false
+  local release_name_template=
 
   parse_command_line "$@"
 
@@ -227,6 +229,12 @@ parse_command_line() {
           shift
       fi
       ;;
+    --release-name-template)
+      if [[ -n "${2:-}" ]]; then
+          release_name_template="$2"
+          shift
+      fi
+      ;;
     *)
       break
       ;;
@@ -342,6 +350,9 @@ release_charts() {
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
   fi
+  if [[ -n "$release_name_template" ]]; then
+    args+=(--release-name-template "$release_name_template")
+  fi
 
   echo 'Releasing charts...'
   cr upload "${args[@]}"
@@ -363,7 +374,9 @@ update_index() {
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
   fi
-
+  if [[ -n "$release_name_template" ]]; then
+    args+=(--release-name-template "$release_name_template")
+  fi
   echo 'Updating charts repo index...'
   cr index "${args[@]}"
 }
