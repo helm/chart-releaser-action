@@ -56,6 +56,15 @@ inputs:
   pages_branch:
     description: "Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)"
     required: false
+  oci_registry_url:
+    description: "OCI registry URL (e.g. oci://ghcr.io/myorg/charts). When set, chart packages are pushed to this OCI registry using 'cr push'."
+    required: false
+  oci_username:
+    description: "Username for OCI registry authentication. Falls back to the local registry credential store (e.g. ~/.docker/config.json populated by helm/docker login) when unset."
+    required: false
+  oci_password:
+    description: "Password or token for OCI registry authentication. Falls back to the local registry credential store when unset."
+    required: false
 outputs:
   changed_charts:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
@@ -119,7 +128,19 @@ runs:
         if [[ -n "${{ inputs.pages_branch }}" ]]; then
             args+=(--pages-branch "${{ inputs.pages_branch }}")
         fi
-        
+
+        if [[ -n "${{ inputs.oci_registry_url }}" ]]; then
+            args+=(--oci-registry-url "${{ inputs.oci_registry_url }}")
+        fi
+
+        if [[ -n "${{ inputs.oci_username }}" ]]; then
+            args+=(--oci-username "${{ inputs.oci_username }}")
+        fi
+
+        if [[ -n "${{ inputs.oci_password }}" ]]; then
+            args+=(--oci-password "${{ inputs.oci_password }}")
+        fi
+
         if [ "${{ runner.arch }}" == "ARM64" ]; then
             args+=(--use-arm "true")
         fi

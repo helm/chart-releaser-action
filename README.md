@@ -24,6 +24,9 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
 - `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
 - `pages_branch`: Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)
+- `oci_registry_url`: OCI registry URL (e.g. `oci://ghcr.io/myorg/charts`). When set, the action additionally pushes each packaged chart to this OCI registry via `cr push`. For authentication, the recommended approach is to run [`docker/login-action`](https://github.com/docker/login-action) before this action so credentials are placed in the local registry credential store; alternatively pass `oci_username` / `oci_password` explicitly.
+- `oci_username`: Username for OCI registry authentication. Falls back to the local registry credential store (e.g. `~/.docker/config.json` populated by `docker/login-action`, `helm registry login`, or `docker login`) when unset.
+- `oci_password`: Password or token for OCI registry authentication. Falls back to the local registry credential store when unset.
 
 ### Outputs
 
@@ -97,6 +100,28 @@ git-base-url: https://api.github.com/
 ```
 
 For options see [config-file](https://github.com/helm/chart-releaser#config-file).
+
+#### Example pushing to an OCI registry
+
+When `oci_registry_url` is set, the action pushes each packaged chart to the OCI registry in addition to (or instead of) the GitHub Pages flow. The recommended way to authenticate is by running [`docker/login-action`](https://github.com/docker/login-action) earlier in the job so the registry credential store is populated; `cr push` then picks them up automatically.
+
+```yaml
+- name: Log in to the OCI registry
+  uses: docker/login-action@v3
+  with:
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
+
+- name: Run chart-releaser
+  uses: helm/chart-releaser-action@v1.7.0
+  with:
+    oci_registry_url: oci://ghcr.io/${{ github.repository_owner }}/charts
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+```
+
+If you prefer to pass credentials directly to the action instead of using `docker/login-action`, set the `oci_username` and `oci_password` inputs.
 
 ## Code of conduct
 
