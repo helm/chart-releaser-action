@@ -141,9 +141,6 @@ runs:
             args+=(--oci-password "${{ inputs.oci_password }}")
         fi
 
-        if [ "${{ runner.arch }}" == "ARM64" ]; then
-            args+=(--use-arm "true")
-        fi
         "$GITHUB_ACTION_PATH/cr.sh" "${args[@]}"
 
         if [[ -f changed_charts.txt ]]; then
