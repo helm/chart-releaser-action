@@ -38,7 +38,6 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
-        --use-arm                 Use ARM64 binary (default: false)
 EOF
 }
 
@@ -48,6 +47,8 @@ main() {
   local charts_dir=charts
   local owner=
   local repo=
+  local install_os=
+  local install_arch=
   local install_dir=
   local install_only=
   local skip_packaging=
@@ -56,7 +57,21 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
-  local use_arm=false
+
+  install_os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  install_arch=$(uname -m)
+
+  case "${install_arch}" in
+  aarch64*|armv8*)
+    install_arch="arm64"
+    ;;
+  armel|armhf|armv7*)
+    install_arch="armv7"
+    ;;
+  x86_64)
+    install_arch="amd64"
+    ;;
+  esac
 
   parse_command_line "$@"
 
@@ -221,12 +236,6 @@ parse_command_line() {
         shift
       fi
       ;;
-    --use-arm)
-      if [[ -n "${2:-}" ]]; then
-          use_arm="$2"
-          shift
-      fi
-      ;;
     *)
       break
       ;;
@@ -248,9 +257,7 @@ parse_command_line() {
   fi
 
   if [[ -z "$install_dir" ]]; then
-    local arch
-    arch=$(uname -m)
-    install_dir="$RUNNER_TOOL_CACHE/cr/$version/$arch"
+    install_dir="$RUNNER_TOOL_CACHE/cr/$version/$install_arch"
   fi
 
   if [[ -n "$install_only" ]]; then
@@ -268,12 +275,8 @@ install_chart_releaser() {
 
   if [[ ! -d "$install_dir" ]]; then
     mkdir -p "$install_dir"
-    architecture=linux_amd64
-    if [[ "$use_arm" = true ]]; then
-      architecture=linux_arm64
-    fi
     echo "Installing chart-releaser on $install_dir..."
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
+    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${install_os}_${install_arch}.tar.gz"
     tar -xzf cr.tar.gz -C "$install_dir"
     rm -f cr.tar.gz
   fi
