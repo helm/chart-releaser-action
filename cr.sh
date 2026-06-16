@@ -99,7 +99,11 @@ main() {
         echo "${changed_charts[*]}"
       )" >changed_charts.txt
 
-      echo "chart_version=${latest_tag}" >chart_version.txt
+      chart_path="${changed_charts[0]}"
+chart_name=$(grep "^name:" "$chart_path/Chart.yaml" | awk '{print $2}')
+chart_version=$(grep "^version:" "$chart_path/Chart.yaml" | awk '{print $2}')
+
+echo "chart_version=${chart_name}-${chart_version}" >chart_version.txt
     else
       echo "Nothing to do. No chart changes detected."
       echo "changed_charts=" >changed_charts.txt
