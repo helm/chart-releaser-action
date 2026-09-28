@@ -38,6 +38,9 @@ Usage: $(basename "$0") <options>
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
         --packages-with-index     Upload chart packages directly into publishing branch
+        --oci-registry-url        OCI registry URL (e.g. oci://ghcr.io/myorg/charts). When set, packages are pushed via 'cr push'.
+        --oci-username            Username for OCI registry authentication (falls back to local registry credential store)
+        --oci-password            Password/token for OCI registry authentication (falls back to local registry credential store)
         --use-arm                 Use ARM64 binary (default: false)
 EOF
 }
@@ -56,6 +59,9 @@ main() {
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
+  local oci_registry_url=
+  local oci_username=
+  local oci_password=
   local use_arm=false
 
   parse_command_line "$@"
@@ -93,6 +99,7 @@ main() {
       done
 
       release_charts
+      push_charts
       update_index
       echo "changed_charts=$(
         IFS=,
@@ -110,6 +117,7 @@ main() {
     rm -rf .cr-index
     mkdir -p .cr-index
     release_charts
+    push_charts
     update_index
   fi
 
@@ -218,6 +226,24 @@ parse_command_line() {
     --packages-with-index)
       if [[ -n "${2:-}" ]]; then
         packages_with_index="$2"
+        shift
+      fi
+      ;;
+    --oci-registry-url)
+      if [[ -n "${2:-}" ]]; then
+        oci_registry_url="$2"
+        shift
+      fi
+      ;;
+    --oci-username)
+      if [[ -n "${2:-}" ]]; then
+        oci_username="$2"
+        shift
+      fi
+      ;;
+    --oci-password)
+      if [[ -n "${2:-}" ]]; then
+        oci_password="$2"
         shift
       fi
       ;;
@@ -345,6 +371,26 @@ release_charts() {
 
   echo 'Releasing charts...'
   cr upload "${args[@]}"
+}
+
+push_charts() {
+  if [[ -z "$oci_registry_url" ]]; then
+    return
+  fi
+
+  local args=(--registry-url "$oci_registry_url" --package-path .cr-release-packages)
+  if [[ -n "$oci_username" ]]; then
+    args+=(--username "$oci_username")
+  fi
+  if [[ -n "$oci_password" ]]; then
+    args+=(--password "$oci_password")
+  fi
+  if [[ -n "$skip_existing" ]]; then
+    args+=(--skip-existing)
+  fi
+
+  echo "Pushing charts to OCI registry $oci_registry_url..."
+  cr push "${args[@]}"
 }
 
 update_index() {
