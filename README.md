@@ -22,6 +22,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for exemple with OCI based repositories) which doen't require the `index.yaml`.
 - `mark_as_latest`: When you set this to `false`, it will mark the created GitHub release not as 'latest'.
+- `match_tags`: The glob to use to filter Git tags, usually used with the `CR_RELEASE_NAME_TEMPLATE` environment variable (default: all tags)
 - `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
 - `pages_branch`: Name of the branch to be used to push the index and artifacts. (default to: gh-pages but it is not set in the action it is a default value for the chart-releaser binary)
 - `oci_registry_url`: OCI registry URL (e.g. `oci://ghcr.io/myorg/charts`). When set, the action additionally pushes each packaged chart to this OCI registry via `cr push`. For authentication, the recommended approach is to run [`docker/login-action`](https://github.com/docker/login-action) before this action so credentials are placed in the local registry credential store; alternatively pass `oci_username` / `oci_password` explicitly.
@@ -60,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
