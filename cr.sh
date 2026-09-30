@@ -106,7 +106,7 @@ main() {
         echo "${changed_charts[*]}"
       )" >changed_charts.txt
 
-      echo "chart_version=${latest_tag}" >chart_version.txt
+      echo "chart_version=$(lookup_packaged_chart_versions "${changed_charts[@]}")" >chart_version.txt
     else
       echo "Nothing to do. No chart changes detected."
       echo "changed_charts=" >changed_charts.txt
@@ -350,6 +350,31 @@ package_chart() {
 
   echo "Packaging chart '$chart'..."
   cr package "${args[@]}"
+}
+
+lookup_packaged_chart_versions() {
+  local chart_versions=()
+
+  for chart in "$@"; do
+    local chart_name packaged_charts
+    chart_name=$(basename "$chart")
+
+    shopt -s nullglob
+    packaged_charts=(.cr-release-packages/"${chart_name}"-*.tgz)
+    shopt -u nullglob
+
+    if [[ ${#packaged_charts[@]} -eq 0 ]]; then
+      echo "ERROR: No packaged chart found for '$chart_name' in .cr-release-packages" >&2
+      return 1
+    fi
+
+    chart_versions+=("$(basename "${packaged_charts[0]}" .tgz)")
+  done
+
+  (
+    IFS=,
+    echo "${chart_versions[*]}"
+  )
 }
 
 release_charts() {
