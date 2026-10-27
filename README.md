@@ -8,10 +8,34 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to
    maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
-1. A GitHub branch called `gh-pages` to store the published charts.
+1. A GitHub branch called `gh-pages` to store the index and, optionally, chart packages. See [Publishing branch setup](#publishing-branch-setup).
 1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
    For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
+
+#### Publishing branch setup
+
+Create the publishing branch separately from the source branch so it does not inherit source files, workflows, or `.gitignore` rules. For example, create an empty orphan branch in a temporary worktree:
+
+```bash
+git worktree add --detach ../chart-releaser-pages HEAD
+cd ../chart-releaser-pages
+git switch --orphan gh-pages
+git commit --allow-empty -m "Initialize gh-pages"
+git push origin gh-pages
+cd -
+git worktree remove ../chart-releaser-pages
+```
+
+Run this once, before the first release. If you configure `pages_branch`, use that branch name instead of `gh-pages`.
+
+When `packages_with_index: true` is enabled, the action commits `.tgz` chart packages alongside `index.yaml`. The publishing branch's `.gitignore` must allow those files. In particular, remove an inherited `*.tgz` rule if Git reports `The following paths are ignored by one of your .gitignore files`. You can still ignore `.tgz` files on the source branch; its ignore rules do not apply to a separate publishing branch.
+
+#### Checkout credentials
+
+Chart-releaser uses Git worktrees to publish the index and chart packages. If you use `actions/checkout@v6`, use v6.0.1 or later: v6.0.0 moved persisted credentials to a separate file without making them available in worktrees. This was fixed in [actions/checkout#2327](https://github.com/actions/checkout/pull/2327). The example below uses v7, which includes the fix.
+
+If publishing fails with `fatal: could not read Username for 'https://github.com': No such device or address`, check the checkout version and keep `persist-credentials: true` enabled. Setting `CR_TOKEN` alone does not persist checkout credentials for Git worktrees. The workflow also needs `contents: write` permission. If you use a custom token, pass it to both checkout's `token` input and `CR_TOKEN`.
 
 ### Inputs
 
@@ -61,9 +85,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Configure Git
         run: |
