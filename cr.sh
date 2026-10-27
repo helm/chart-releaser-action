@@ -422,7 +422,7 @@ update_index() {
     args+=(--config "$config")
   fi
   if [[ "$packages_with_index" = true ]]; then
-    args+=(--packages-with-index --index-path .)
+    args+=(--packages-with-index)
   fi
   if [[ -n "$pages_branch" ]]; then
     args+=(--pages-branch "$pages_branch")
