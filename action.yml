@@ -30,6 +30,9 @@ inputs:
     description: The charts directory
     required: false
     default: charts
+  charts:
+    description: "Newline-separated chart directories to package without Git change detection. Takes precedence over charts_dir and match_tags; cannot be combined with skip_packaging."
+    required: false
   install_dir:
     description: "Where to install the cr tool"
     required: false
@@ -73,7 +76,7 @@ outputs:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
     value: ${{ steps.release.outputs.changed_charts }}
   chart_version:
-    description: "The version of the most recently generated charts; will be set even if no charts have been updated since the last run."
+    description: "The version of the most recently generated charts; will be empty when explicit charts are supplied."
     value: ${{ steps.release.outputs.chart_version }}
 
 runs:
@@ -82,6 +85,7 @@ runs:
     - id: release
       env:
         charts_dir: ${{ inputs.charts_dir }}
+        charts: ${{ inputs.charts }}
         config: ${{ inputs.config }}
         install_dir: ${{ inputs.install_dir }}
         install_only: ${{ inputs.install_only }}
@@ -102,6 +106,10 @@ runs:
 
         args=(--owner "$owner" --repo "$repo")
         args+=(--charts-dir "$charts_dir")
+
+        if [[ -n "$charts" ]]; then
+            args+=(--charts "$charts")
+        fi
 
         if [[ -n "$version" ]]; then
             args+=(--version "$version")

@@ -28,6 +28,7 @@ Usage: $(basename "$0") <options>
     -v, --version                 The chart-releaser version to use (default: $DEFAULT_CHART_RELEASER_VERSION)"
         --config                  The path to the chart-releaser config file
     -d, --charts-dir              The charts directory (default: charts)
+        --charts                  Newline-separated chart directories to process without Git change detection
     -o, --owner                   The repo owner
     -r, --repo                    The repo name
         --pages-branch            The repo pages branch
@@ -50,6 +51,7 @@ main() {
   local version="$DEFAULT_CHART_RELEASER_VERSION"
   local config=
   local charts_dir=charts
+  local charts=
   local owner=
   local repo=
   local match_tags=
@@ -68,6 +70,11 @@ main() {
 
   parse_command_line "$@"
 
+  if [[ -n "$charts" && -n "$skip_packaging" ]]; then
+    echo "ERROR: '--charts' cannot be combined with '--skip-packaging'." >&2
+    exit 1
+  fi
+
   : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
 
   local repo_root
@@ -75,13 +82,20 @@ main() {
   pushd "$repo_root" >/dev/null
 
   if [[ -z "$skip_packaging" ]]; then
-    echo 'Looking up latest tag...'
-    local latest_tag
-    latest_tag=$(lookup_latest_tag)
-
-    echo "Discovering changed charts since '$latest_tag'..."
+    local latest_tag=
     local changed_charts=()
-    readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
+    if [[ -n "$charts" ]]; then
+      echo 'Processing explicitly selected charts...'
+      local selected_charts
+      selected_charts=$(lookup_selected_charts "$charts")
+      readarray -t changed_charts <<<"$selected_charts"
+    else
+      echo 'Looking up latest tag...'
+      latest_tag=$(lookup_latest_tag)
+
+      echo "Discovering changed charts since '$latest_tag'..."
+      readarray -t changed_charts <<<"$(lookup_changed_charts "$latest_tag")"
+    fi
 
     if [[ -n "${changed_charts[*]}" ]]; then
       install_chart_releaser
@@ -149,6 +163,16 @@ parse_command_line() {
         shift
       else
         echo "ERROR: '-v|--version' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
+    --charts)
+      if [[ -n "${2:-}" ]]; then
+        charts="$2"
+        shift
+      else
+        echo "ERROR: '--charts' cannot be empty." >&2
         show_help
         exit 1
       fi
@@ -332,6 +356,37 @@ lookup_latest_tag() {
   if ! git "${args[@]}" 2> /dev/null; then
     git rev-list --max-parents=0 --first-parent HEAD
   fi
+}
+
+lookup_selected_charts() {
+  local chart resolved existing duplicate
+  local selected=() resolved_paths=()
+  while IFS= read -r chart || [[ -n "$chart" ]]; do
+    chart=${chart%$'\r'}
+    [[ -z "${chart//[[:space:]]/}" ]] && continue
+    if [[ ! -d "$chart" || ! -f "$chart/Chart.yaml" ]]; then
+      echo "ERROR: Selected chart '$chart' must be a directory containing Chart.yaml." >&2
+      return 1
+    fi
+    resolved=$(cd "$chart" && pwd -P)
+    duplicate=false
+    for existing in "${resolved_paths[@]}"; do
+      if [[ "$existing" == "$resolved" ]]; then
+        duplicate=true
+        break
+      fi
+    done
+    if [[ "$duplicate" = false ]]; then
+      selected+=("$chart")
+      resolved_paths+=("$resolved")
+    fi
+  done <<<"$1"
+
+  if [[ ${#selected[@]} -eq 0 ]]; then
+    echo "ERROR: '--charts' must contain at least one chart directory." >&2
+    return 1
+  fi
+  printf '%s\n' "${selected[@]}"
 }
 
 filter_charts() {

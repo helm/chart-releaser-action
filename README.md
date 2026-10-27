@@ -18,6 +18,7 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 - `version`: The chart-releaser version to use (default: v1.9.0)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
+- `charts`: Optional newline-separated chart directory paths, relative to the checkout directory. When set, only these charts are processed, without Git change detection. Takes precedence over `charts_dir` and `match_tags`; cannot be combined with `skip_packaging`.
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for example with OCI based repositories) which doesn't require the `index.yaml`.
@@ -32,7 +33,26 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 ### Outputs
 
 - `changed_charts`: A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them.
-- `chart_version`: The version of the most recently generated charts; will be set even if no charts have been updated since the last run.
+- `chart_version`: The version of the most recently generated charts; will be empty when explicit `charts` are supplied.
+
+### Explicit chart processing
+
+Supply chart directories to package selected charts even when Git reports no changes, such as in a manually triggered workflow:
+
+```yaml
+- name: Release selected charts
+  uses: helm/chart-releaser-action@main
+  with:
+    charts: |
+      charts/my-chart
+      generated/another-chart
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+```
+
+Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed; `chart_version` is empty because this mode does not select a comparison tag.
+
+This bypasses discovery only. Versions still come from `Chart.yaml`, and existing release/asset collision behavior is unchanged: existing releases fail unless skipping is enabled. It does not overwrite artifacts or repair an index using previously published packages. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
 
 ### Environment variables
 
