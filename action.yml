@@ -83,6 +83,9 @@ runs:
         install_dir: ${{ inputs.install_dir }}
         install_only: ${{ inputs.install_only }}
         mark_as_latest: ${{ inputs.mark_as_latest }}
+        oci_registry_url: ${{ inputs.oci_registry_url }}
+        oci_username: ${{ inputs.oci_username }}
+        oci_password: ${{ inputs.oci_password }}
         packages_with_index: ${{ inputs.packages_with_index }}
         pages_branch: ${{ inputs.pages_branch }}
         skip_existing: ${{ inputs.skip_existing }}
@@ -141,16 +144,16 @@ runs:
             args+=(--pages-branch "$pages_branch")
         fi
 
-        if [[ -n "${{ inputs.oci_registry_url }}" ]]; then
-            args+=(--oci-registry-url "${{ inputs.oci_registry_url }}")
+        if [[ -n "$oci_registry_url" ]]; then
+            args+=(--oci-registry-url "$oci_registry_url")
         fi
 
-        if [[ -n "${{ inputs.oci_username }}" ]]; then
-            args+=(--oci-username "${{ inputs.oci_username }}")
+        if [[ -n "$oci_username" ]]; then
+            args+=(--oci-username "$oci_username")
         fi
 
-        if [[ -n "${{ inputs.oci_password }}" ]]; then
-            args+=(--oci-password "${{ inputs.oci_password }}")
+        if [[ -n "$oci_password" ]]; then
+            args+=(--oci-password "$oci_password")
         fi
 
         if [ "$RUNNER_ARCH" == "ARM64" ]; then
