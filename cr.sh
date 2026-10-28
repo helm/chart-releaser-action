@@ -354,6 +354,9 @@ package_chart() {
   fi
 
   cp -f "${packages[0]}" .cr-release-packages/ || return 1
+  if [[ -f "${packages[0]}.prov" ]]; then
+    cp -f "${packages[0]}.prov" .cr-release-packages/ || return 1
+  fi
   packaged_chart_versions+=("$packaged_identity")
   rm -rf "$tmp_dir"
 }

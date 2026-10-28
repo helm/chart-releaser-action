@@ -46,6 +46,11 @@ package)
   done
 
   cp "$CR_TEST_PACKAGE_FIXTURES/$(basename "$chart")/"*.tgz "$package_path/"
+  if [[ -n "${CR_TEST_PROVENANCE_FIXTURE:-}" ]]; then
+    for package in "$package_path/"*.tgz; do
+      cp "$CR_TEST_PROVENANCE_FIXTURE" "$package.prov"
+    done
+  fi
   if [[ "${CR_TEST_CORRUPT_PACKAGE:-false}" == true ]]; then
     for package in "$package_path/"*.tgz; do
       : >"$package"
@@ -53,6 +58,14 @@ package)
   fi
   ;;
 upload|index)
+  if [[ -n "${CR_TEST_PROVENANCE_FIXTURE:-}" ]]; then
+    for package in .cr-release-packages/*.tgz; do
+      if ! cmp "$CR_TEST_PROVENANCE_FIXTURE" "$package.prov"; then
+        echo "expected unchanged provenance for '$package' during $command" >&2
+        exit 1
+      fi
+    done
+  fi
   echo "$command" >>"$CR_TEST_PUBLISH_LOG"
   ;;
 *)
@@ -175,7 +188,7 @@ fi
 
 runtime_bin="$test_root/runtime-bin"
 mkdir -p "$runtime_bin"
-for runtime_command in awk bash basename cat cp cut git gzip mkdir rm sed sh tar tr uname uniq wc; do
+for runtime_command in awk bash basename cat cmp cp cut git gzip mkdir rm sed sh tar tr uname uniq wc; do
   command_path=$(command -v "$runtime_command")
   printf '#!%s\nexec %q "$@"\n' "$BASH" "$command_path" >"$runtime_bin/$runtime_command"
   chmod +x "$runtime_bin/$runtime_command"
@@ -196,6 +209,16 @@ fi
 
 if [[ "$(<"$CR_TEST_PUBLISH_LOG")" != $'upload\nindex' ]]; then
   echo "expected upload and index to succeed on a runner without Helm" >&2
+  exit 1
+fi
+
+provenance_fixture="$test_root/provenance.fixture"
+printf 'signed provenance\r\nsha256: test-digest\nsignature: ABC123==\n' >"$provenance_fixture"
+rm -f chart_version.txt "$CR_TEST_PUBLISH_LOG"
+PATH="$runtime_bin" CR_TEST_PROVENANCE_FIXTURE="$provenance_fixture" bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"
+
+if [[ "$(<chart_version.txt)" != "$expected_version" || "$(<"$CR_TEST_PUBLISH_LOG")" != $'upload\nindex' ]]; then
+  echo "expected signed charts to preserve versions and reach upload and index" >&2
   exit 1
 fi
 
