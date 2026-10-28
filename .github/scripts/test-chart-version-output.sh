@@ -34,9 +34,7 @@ package)
     esac
   done
 
-  version=$(awk '/^version:/ {print $2; exit}' "$chart/Chart.yaml")
-  tarball="$(basename "$chart")-$version.tgz"
-  : >"$package_path/$tarball"
+  helm package "$chart" --destination "$package_path" >/dev/null
   ;;
 upload|index)
   ;;
@@ -94,3 +92,47 @@ if [[ "$actual_version" != "$expected_version" ]]; then
   echo "expected '$expected_version' but got '$actual_version'" >&2
   exit 1
 fi
+
+git tag common-service-0.1.2
+
+mkdir -p charts/app charts/app-0helper charts/different-directory
+
+cat >charts/app/Chart.yaml <<'EOF'
+apiVersion: v2
+name: app
+version: 1.0.0
+EOF
+
+cat >charts/app-0helper/Chart.yaml <<'EOF'
+apiVersion: v2
+name: app-0helper
+version: 2.0.0
+EOF
+
+cat >charts/different-directory/Chart.yaml <<'EOF'
+apiVersion: v2
+name: actual-chart-name
+version: '3.0.0'
+EOF
+
+git add charts
+git commit -m "add charts with overlapping and differing names" >/dev/null
+
+bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"
+
+expected_changed='changed_charts=charts/app-0helper,charts/app,charts/different-directory'
+expected_version='chart_version=app-0helper-2.0.0,app-1.0.0,actual-chart-name-3.0.0'
+actual_changed=$(<changed_charts.txt)
+actual_version=$(<chart_version.txt)
+
+if [[ "$actual_changed" != "$expected_changed" ]]; then
+  echo "expected '$expected_changed' but got '$actual_changed'" >&2
+  exit 1
+fi
+
+if [[ "$actual_version" != "$expected_version" ]]; then
+  echo "expected '$expected_version' but got '$actual_version'" >&2
+  exit 1
+fi
+
+echo "chart_version output tests passed"

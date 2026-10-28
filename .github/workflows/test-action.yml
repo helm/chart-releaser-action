@@ -61,5 +61,5 @@ jobs:
           exit 1
         fi
     - name: Validate chart_version output
-      run: .github/scripts/test-chart-version-output.sh
+      run: bash .github/scripts/test-chart-version-output.sh
       shell: bash

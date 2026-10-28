@@ -326,23 +326,36 @@ package_chart() {
   cr package "${args[@]}"
 }
 
+lookup_chart_name_and_version() {
+  helm show chart "$1" | awk '
+    /^name:/ { name = $2 }
+    /^version:/ { version = $2 }
+    END {
+      gsub(/["\047]/, "", version)
+      print name "-" version
+    }
+  '
+}
+
 lookup_packaged_chart_versions() {
   local chart_versions=()
+  local chart chart_identity packaged_chart packaged_identity
 
   for chart in "$@"; do
-    local chart_name packaged_charts
-    chart_name=$(basename "$chart")
+    chart_identity=$(lookup_chart_name_and_version "$chart") || return 1
+    packaged_chart=".cr-release-packages/$chart_identity.tgz"
 
-    shopt -s nullglob
-    packaged_charts=(.cr-release-packages/"${chart_name}"-*.tgz)
-    shopt -u nullglob
-
-    if [[ ${#packaged_charts[@]} -eq 0 ]]; then
-      echo "ERROR: No packaged chart found for '$chart_name' in .cr-release-packages" >&2
+    if [[ ! -f "$packaged_chart" ]]; then
+      echo "ERROR: No packaged chart found for '$chart_identity' in .cr-release-packages" >&2
       return 1
     fi
 
-    chart_versions+=("$(basename "${packaged_charts[0]}" .tgz)")
+    packaged_identity=$(lookup_chart_name_and_version "$packaged_chart") || return 1
+    if [[ "$packaged_identity" != "$chart_identity" ]]; then
+      echo "ERROR: Packaged chart metadata does not match '$chart_identity'" >&2
+      return 1
+    fi
+    chart_versions+=("$packaged_identity")
   done
 
   (
