@@ -92,6 +92,12 @@ main() {
         fi
       done
 
+      local chart_versions
+      if ! chart_versions=$(lookup_packaged_chart_versions "${changed_charts[@]}"); then
+        echo "ERROR: Failed to look up packaged chart versions" >&2
+        return 1
+      fi
+
       release_charts
       update_index
       echo "changed_charts=$(
@@ -99,7 +105,7 @@ main() {
         echo "${changed_charts[*]}"
       )" >changed_charts.txt
 
-      echo "chart_version=$(lookup_packaged_chart_versions "${changed_charts[@]}")" >chart_version.txt
+      echo "chart_version=$chart_versions" >chart_version.txt
     else
       echo "Nothing to do. No chart changes detected."
       echo "changed_charts=" >changed_charts.txt
@@ -327,14 +333,38 @@ package_chart() {
 }
 
 lookup_chart_name_and_version() {
-  helm show chart "$1" | awk '
-    /^name:/ { name = $2 }
-    /^version:/ { version = $2 }
+  local chart="$1"
+  local metadata metadata_path
+
+  if [[ -d "$chart" ]]; then
+    metadata=$(cat "$chart/Chart.yaml") || return 1
+  else
+    metadata_path=$(tar -tzf "$chart" | awk '
+      /^[^/]+\/Chart\.yaml$/ { print; count++ }
+      END { if (count != 1) exit 1 }
+    ') || return 1
+    metadata=$(tar -xOzf "$chart" "$metadata_path") || return 1
+  fi
+
+  awk '
+    function scalar(value) {
+      sub(/^[^:]*:[[:space:]]*/, "", value)
+      sub(/[[:space:]]+#.*$/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      if (value ~ /^".*"$/ || value ~ /^\047.*\047$/) {
+        value = substr(value, 2, length(value) - 2)
+      }
+      return value
+    }
+    /^name:/ { name = scalar($0) }
+    /^version:/ { version = scalar($0) }
     END {
-      gsub(/["\047]/, "", version)
+      if (name !~ /^[[:alnum:]][[:alnum:]._-]*$/ || version !~ /^[[:alnum:]][[:alnum:].+_-]*$/) {
+        exit 1
+      }
       print name "-" version
     }
-  '
+  ' <<<"$metadata"
 }
 
 lookup_packaged_chart_versions() {
