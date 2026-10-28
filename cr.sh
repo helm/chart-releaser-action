@@ -84,19 +84,20 @@ main() {
       rm -rf .cr-index
       mkdir -p .cr-index
 
+      local packaged_chart_versions=()
       for chart in "${changed_charts[@]}"; do
         if [[ -d "$chart" ]]; then
-          package_chart "$chart"
+          package_chart "$chart" || return 1
         else
           echo "Nothing to do. No chart changes detected."
         fi
       done
 
       local chart_versions
-      if ! chart_versions=$(lookup_packaged_chart_versions "${changed_charts[@]}"); then
-        echo "ERROR: Failed to look up packaged chart versions" >&2
-        return 1
-      fi
+      chart_versions=$(
+        IFS=,
+        echo "${packaged_chart_versions[*]}"
+      )
 
       release_charts
       update_index
@@ -322,29 +323,50 @@ lookup_changed_charts() {
 
 package_chart() {
   local chart="$1"
+  local tmp_dir=".cr-package-tmp"
 
-  local args=("$chart" --package-path .cr-release-packages)
+  local args=("$chart" --package-path "$tmp_dir")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
 
+  rm -rf "$tmp_dir" || return 1
+  mkdir -p "$tmp_dir" || return 1
+
   echo "Packaging chart '$chart'..."
-  cr package "${args[@]}"
+  cr package "${args[@]}" || return 1
+
+  local packages=("$tmp_dir"/*.tgz)
+  if [[ ${#packages[@]} -ne 1 || ! -f "${packages[0]}" ]]; then
+    echo "ERROR: Expected exactly one package for '$chart' in $tmp_dir" >&2
+    return 1
+  fi
+
+  local packaged_identity
+  if ! packaged_identity=$(lookup_packaged_chart_identity "${packages[0]}"); then
+    echo "ERROR: Failed to read packaged chart metadata for '$chart'" >&2
+    return 1
+  fi
+
+  if [[ "$(basename "${packages[0]}" .tgz)" != "$packaged_identity" ]]; then
+    echo "ERROR: Packaged chart filename does not match '$packaged_identity'" >&2
+    return 1
+  fi
+
+  cp -f "${packages[0]}" .cr-release-packages/ || return 1
+  packaged_chart_versions+=("$packaged_identity")
+  rm -rf "$tmp_dir"
 }
 
-lookup_chart_name_and_version() {
+lookup_packaged_chart_identity() {
   local chart="$1"
   local metadata metadata_path
 
-  if [[ -d "$chart" ]]; then
-    metadata=$(cat "$chart/Chart.yaml") || return 1
-  else
-    metadata_path=$(tar -tzf "$chart" | awk '
-      /^[^/]+\/Chart\.yaml$/ { print; count++ }
-      END { if (count != 1) exit 1 }
-    ') || return 1
-    metadata=$(tar -xOzf "$chart" "$metadata_path") || return 1
-  fi
+  metadata_path=$(tar -tzf "$chart" | awk '
+    /^[^\/]+\/Chart\.yaml$/ { print; count++ }
+    END { if (count != 1) exit 1 }
+  ') || return 1
+  metadata=$(tar -xOzf "$chart" "$metadata_path") || return 1
 
   awk '
     function scalar(value) {
@@ -365,33 +387,6 @@ lookup_chart_name_and_version() {
       print name "-" version
     }
   ' <<<"$metadata"
-}
-
-lookup_packaged_chart_versions() {
-  local chart_versions=()
-  local chart chart_identity packaged_chart packaged_identity
-
-  for chart in "$@"; do
-    chart_identity=$(lookup_chart_name_and_version "$chart") || return 1
-    packaged_chart=".cr-release-packages/$chart_identity.tgz"
-
-    if [[ ! -f "$packaged_chart" ]]; then
-      echo "ERROR: No packaged chart found for '$chart_identity' in .cr-release-packages" >&2
-      return 1
-    fi
-
-    packaged_identity=$(lookup_chart_name_and_version "$packaged_chart") || return 1
-    if [[ "$packaged_identity" != "$chart_identity" ]]; then
-      echo "ERROR: Packaged chart metadata does not match '$chart_identity'" >&2
-      return 1
-    fi
-    chart_versions+=("$packaged_identity")
-  done
-
-  (
-    IFS=,
-    echo "${chart_versions[*]}"
-  )
 }
 
 release_charts() {

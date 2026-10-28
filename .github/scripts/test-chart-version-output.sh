@@ -7,8 +7,8 @@ test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
 
 runner_tool_cache="$test_root/tool-cache"
-install_dir="$runner_tool_cache/cr/v1.7.0/$(uname -m)"
-mkdir -p "$install_dir"
+install_dir="$test_root/cr"
+mkdir -p "$runner_tool_cache" "$install_dir"
 
 export CR_TEST_PACKAGE_FIXTURES="$test_root/packages"
 
@@ -114,7 +114,7 @@ fi
 
 git tag common-service-0.1.2
 
-mkdir -p charts/app charts/app-0helper charts/different-directory
+mkdir -p charts/app charts/app-0helper charts/different-directory charts/indented charts/numeric charts/quoted
 
 cat >charts/app/Chart.yaml <<'EOF'
 apiVersion: v2
@@ -134,14 +134,32 @@ name: "actual-chart-name" # Not the directory name
 version: '3.0.0' # Quoted chart version
 EOF
 
+cat >charts/indented/Chart.yaml <<'EOF'
+  apiVersion: v2
+  name: indented-example
+  version: 1.2.3
+EOF
+
+cat >charts/numeric/Chart.yaml <<'EOF'
+apiVersion: v2
+name: numeric-example
+version: 1.0
+EOF
+
+cat >charts/quoted/Chart.yaml <<'EOF'
+apiVersion: v2
+"name": quoted-example
+"version": 1.2.3
+EOF
+
 git add charts
 git commit -m "add charts with overlapping and differing names" >/dev/null
 
 prepare_packages
 bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"
 
-expected_changed='changed_charts=charts/app-0helper,charts/app,charts/different-directory'
-expected_version='chart_version=app-0helper-2.0.0,app-1.0.0,actual-chart-name-3.0.0'
+expected_changed='changed_charts=charts/app-0helper,charts/app,charts/different-directory,charts/indented,charts/numeric,charts/quoted'
+expected_version='chart_version=app-0helper-2.0.0,app-1.0.0,actual-chart-name-3.0.0,indented-example-1.2.3,numeric-example-1,quoted-example-1.2.3'
 actual_changed=$(<changed_charts.txt)
 actual_version=$(<chart_version.txt)
 
