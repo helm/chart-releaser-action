@@ -182,6 +182,7 @@ if [[ "$(<"$CR_TEST_PUBLISH_LOG")" != $'upload\nindex' ]]; then
 fi
 
 rm -f chart_version.txt "$CR_TEST_PUBLISH_LOG"
+echo "Testing expected failure for a corrupted package (errors below are intentional)"
 if PATH="$runtime_bin" CR_TEST_CORRUPT_PACKAGE=true bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"; then
   echo "expected a nonzero action exit when package metadata lookup fails" >&2
   exit 1
