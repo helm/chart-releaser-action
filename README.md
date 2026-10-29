@@ -64,6 +64,30 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 
 For more information on environment variables, see the [documentation](https://github.com/helm/chart-releaser#environment-variables).
 
+### Release notes
+
+To include GitHub-generated changelog text and pull request links in releases, enable `CR_GENERATE_RELEASE_NOTES`:
+
+```yaml
+- name: Run chart-releaser
+  uses: helm/chart-releaser-action@v1.8.0
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    CR_GENERATE_RELEASE_NOTES: "true"
+```
+
+The default CLI v1.9.0 compares against the previous tag of the same chart when one can be identified. First releases, unsupported release-name templates, and lookup failures fall back to GitHub's default generation behavior. Generated notes cover the commit range between tags; they do not filter pull requests by chart directory, so a monorepo release can include changes to other charts.
+
+For notes specific to each chart, prepare a Markdown file inside each chart before packaging, then select it with a config file:
+
+```yaml
+# cr.yaml, passed through the action's config input
+release-notes-file: RELEASE_NOTES.md
+generate-release-notes: false
+```
+
+The file path is relative to each chart root, such as `charts/my-chart/RELEASE_NOTES.md`, and the file must be included in the chart package. The CLI uses its entire contents as the release body; it does not automatically extract a version section from a full changelog. If the file is absent, the chart description is used instead. Set `generate-release-notes: true` to append GitHub-generated notes to that body. The equivalent environment variables are `CR_RELEASE_NOTES_FILE` and `CR_GENERATE_RELEASE_NOTES`.
+
 ### Example Workflow
 
 Create a workflow (eg: `.github/workflows/release.yml`):
