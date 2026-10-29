@@ -127,6 +127,31 @@ git-base-url: https://api.github.com/
 
 For options see [config-file](https://github.com/helm/chart-releaser#config-file).
 
+#### Custom index locations
+
+Use the `config` input to set the CLI's `index-path` and `pages-index-path` options:
+
+```yaml
+- name: Run chart-releaser
+  uses: helm/chart-releaser-action@v1.8.0
+  with:
+    config: cr.yaml
+    pages_branch: gh-pages
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+```
+
+`cr.yaml`:
+
+```yaml
+index-path: site/static/index.yaml
+pages-index-path: docs/index.yaml
+```
+
+`index-path` is the generated file in the workflow checkout, which a later site-build step can use. `pages-index-path` is the index location relative to the publishing branch; the example publishes `docs/index.yaml` on `gh-pages`. Set `pages_branch` to another existing branch if your documentation source lives there, and use a path such as `docs/static/index.yaml` if needed. Both paths should end in `index.yaml`. If another workflow rebuilds the published site, include the index in its build output so it is preserved.
+
+For a custom publishing subdirectory, leave `packages_with_index` disabled (the default), so chart URLs point to GitHub release assets. When `packages_with_index: true` is used, the CLI stores chart archives at the publishing branch root; keep `pages-index-path: index.yaml` so its relative package URLs resolve correctly. You can still customize the local `index-path`.
+
 #### Example pushing to an OCI registry
 
 When `oci_registry_url` is set, the action pushes each packaged chart to the OCI registry in addition to (or instead of) the GitHub Pages flow. The recommended way to authenticate is by running [`docker/login-action`](https://github.com/docker/login-action) earlier in the job so the registry credential store is populated; `cr push` then picks them up automatically.
