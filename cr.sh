@@ -329,6 +329,30 @@ parse_command_line() {
   fi
 }
 
+verify_checksum() {
+  local download_dir="$1"
+  local tarball="$2"
+  local expected actual
+
+  expected=$(awk -v file="$tarball" '$2 == file || $2 == "*" file { print $1; exit }' "$download_dir/checksums.txt")
+  if [[ -z "$expected" ]]; then
+    echo "No checksum for $tarball found in checksums.txt" >&2
+    return 1
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$download_dir/$tarball" | awk '{ print $1 }')
+  else
+    actual=$(shasum -a 256 "$download_dir/$tarball" | awk '{ print $1 }')
+  fi
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Checksum mismatch for $tarball: expected $expected, got $actual" >&2
+    return 1
+  fi
+
+  echo "Verified checksum of $tarball"
+}
+
 install_chart_releaser() {
   if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
     echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
@@ -342,9 +366,19 @@ install_chart_releaser() {
       architecture=linux_arm64
     fi
     echo "Installing chart-releaser on $install_dir..."
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
-    tar -xzf cr.tar.gz -C "$install_dir"
-    rm -f cr.tar.gz
+    local release_url="https://github.com/helm/chart-releaser/releases/download/$version"
+    local tarball="chart-releaser_${version#v}_${architecture}.tar.gz"
+    local download_dir
+    download_dir=$(mktemp -d)
+    curl -fsSLo "$download_dir/$tarball" "$release_url/$tarball"
+    curl -fsSLo "$download_dir/checksums.txt" "$release_url/checksums.txt"
+    if ! verify_checksum "$download_dir" "$tarball"; then
+      rm -rf "$download_dir"
+      rmdir "$install_dir" 2>/dev/null || true
+      exit 1
+    fi
+    tar -xzf "$download_dir/$tarball" -C "$install_dir"
+    rm -rf "$download_dir"
   fi
 
   echo 'Adding cr directory to PATH...'
