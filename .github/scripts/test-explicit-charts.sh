@@ -45,8 +45,11 @@ set -euo pipefail
 echo "$1" >> "$CR_COMMAND_TRACE"
 if [[ "$1" == package ]]; then
   printf '%s\n' "$2" >> "$CR_PACKAGE_TRACE"
-  count=$(wc -l < "$CR_PACKAGE_TRACE" | tr -d ' ')
-  touch ".cr-release-packages/package-$count.tgz"
+  fixture_dir=$(mktemp -d)
+  mkdir -p "$fixture_dir/fixture"
+  cp "$2/Chart.yaml" "$fixture_dir/fixture/Chart.yaml"
+  tar -czf "$4/fixture-0.1.0.tgz" -C "$fixture_dir" fixture
+  rm -rf "$fixture_dir"
 elif [[ "$1" == upload && "${CR_FAIL_UPLOAD:-false}" == true ]]; then
   exit 42
 fi
@@ -90,7 +93,7 @@ test ! -s "$FETCH_TRACE"
 printf 'charts/one\ncharts/with space\ngenerated/ignored\n' > "$test_root/expected-packages"
 diff -u "$test_root/expected-packages" "$CR_PACKAGE_TRACE"
 test "$(cat changed_charts.txt)" = 'changed_charts=charts/one,charts/with space,generated/ignored'
-test "$(cat chart_version.txt)" = 'chart_version='
+test "$(cat chart_version.txt)" = 'chart_version=fixture-0.1.0,fixture-0.1.0,fixture-0.1.0'
 echo 'PASS: explicit selection bypasses tags/diffs and supports spaces, CRLF, ignored charts, and deduplication.'
 
 reset_trace
