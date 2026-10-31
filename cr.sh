@@ -353,6 +353,19 @@ verify_checksum() {
   echo "Verified checksum of $tarball"
 }
 
+download_chart_releaser() {
+  local download_dir="$1"
+  local release_url="$2"
+  local tarball="$3"
+
+  # Called from an `if` condition, where set -e does not apply, so every
+  # step returns explicitly on failure.
+  curl -fsSLo "$download_dir/$tarball" "$release_url/$tarball" || return 1
+  curl -fsSLo "$download_dir/checksums.txt" "$release_url/checksums.txt" || return 1
+  verify_checksum "$download_dir" "$tarball" || return 1
+  tar -xzf "$download_dir/$tarball" -C "$install_dir" || return 1
+}
+
 install_chart_releaser() {
   if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
     echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
@@ -370,14 +383,13 @@ install_chart_releaser() {
     local tarball="chart-releaser_${version#v}_${architecture}.tar.gz"
     local download_dir
     download_dir=$(mktemp -d)
-    curl -fsSLo "$download_dir/$tarball" "$release_url/$tarball"
-    curl -fsSLo "$download_dir/checksums.txt" "$release_url/checksums.txt"
-    if ! verify_checksum "$download_dir" "$tarball"; then
-      rm -rf "$download_dir"
-      rmdir "$install_dir" 2>/dev/null || true
+    if ! download_chart_releaser "$download_dir" "$release_url" "$tarball"; then
+      # Remove the install directory created above, otherwise later runs
+      # see it, skip the install and continue without a cr binary.
+      rm -rf "$download_dir" "$install_dir"
+      echo "Failed to install chart-releaser $version" >&2
       exit 1
     fi
-    tar -xzf "$download_dir/$tarball" -C "$install_dir"
     rm -rf "$download_dir"
   fi
 

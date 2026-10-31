@@ -21,9 +21,10 @@ test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
 export RUNNER_TOOL_CACHE="$test_root/cache"
 export RELEASE_FIXTURES="$test_root/release"
+export TMPDIR="$test_root/tmp"
 version=v9.9.9
 tarball="chart-releaser_${version#v}_linux_amd64.tar.gz"
-mkdir -p "$test_root/bin" "$RUNNER_TOOL_CACHE" "$RELEASE_FIXTURES" "$test_root/payload"
+mkdir -p "$test_root/bin" "$RUNNER_TOOL_CACHE" "$RELEASE_FIXTURES" "$test_root/payload" "$TMPDIR"
 
 # Fake release: a tarball holding a stub cr binary, plus its checksums.txt.
 printf '#!/usr/bin/env bash\necho fake-cr\n' > "$test_root/payload/cr"
@@ -89,11 +90,39 @@ if run_install "$RUNNER_TOOL_CACHE/missing" > "$test_root/missing.log" 2>&1; the
   exit 1
 fi
 grep -q "No checksum for $tarball" "$test_root/missing.log"
+[[ ! -e "$RUNNER_TOOL_CACHE/missing" ]] || { echo 'install dir should be removed after a missing checksum entry' >&2; exit 1; }
 
-# 4. Missing checksums.txt is a download error.
+# 4. Missing checksums.txt is a download error, and it must not leave an
+# empty install dir behind that makes a retry skip the install.
+tar -czf "$RELEASE_FIXTURES/$tarball" -C "$test_root/payload" cr
 rm "$RELEASE_FIXTURES/checksums.txt"
 if run_install "$RUNNER_TOOL_CACHE/nochecksums" > "$test_root/nochecksums.log" 2>&1; then
   echo 'install should fail when checksums.txt cannot be downloaded' >&2
+  exit 1
+fi
+[[ ! -e "$RUNNER_TOOL_CACHE/nochecksums" ]] || { echo 'install dir should be removed after a failed download' >&2; exit 1; }
+
+# 5. Retrying with the same install dir once checksums.txt is available installs cr.
+write_checksums
+run_install "$RUNNER_TOOL_CACHE/nochecksums" > "$test_root/retry.log" 2>&1 || { cat "$test_root/retry.log"; exit 1; }
+if [[ ! -x "$RUNNER_TOOL_CACHE/nochecksums/cr" ]]; then
+  cat "$test_root/retry.log"
+  echo 'retry should install cr after a failed download' >&2
+  exit 1
+fi
+
+# 6. A failed tarball download is cleaned up too.
+rm "$RELEASE_FIXTURES/$tarball"
+if run_install "$RUNNER_TOOL_CACHE/notarball" > "$test_root/notarball.log" 2>&1; then
+  echo 'install should fail when the tarball cannot be downloaded' >&2
+  exit 1
+fi
+[[ ! -e "$RUNNER_TOOL_CACHE/notarball" ]] || { echo 'install dir should be removed after a failed tarball download' >&2; exit 1; }
+
+# No temporary download directories are left behind.
+if [[ -n "$(ls -A "$TMPDIR")" ]]; then
+  ls -A "$TMPDIR" >&2
+  echo 'install should remove its temporary download directory' >&2
   exit 1
 fi
 
