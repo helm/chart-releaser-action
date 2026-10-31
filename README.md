@@ -39,7 +39,7 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.10.0)
+- `version`: The chart-releaser version to use (default: v1.10.1)
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts`: Optional newline-separated chart directory paths, relative to the checkout directory. When set, only these charts are processed, without Git change detection. Takes precedence over `charts_dir` and `match_tags`; cannot be combined with `skip_packaging`.
@@ -96,7 +96,7 @@ To include GitHub-generated changelog text and pull request links in releases, e
     CR_GENERATE_RELEASE_NOTES: "true"
 ```
 
-The default CLI v1.10.0 compares against the previous tag of the same chart when one can be identified. First releases, unsupported release-name templates, and lookup failures fall back to GitHub's default generation behavior. Generated notes cover the commit range between tags; they do not filter pull requests by chart directory, so a monorepo release can include changes to other charts.
+The default CLI v1.10.1 compares against the previous tag of the same chart when one can be identified. First releases, unsupported release-name templates, and lookup failures fall back to GitHub's default generation behavior. Generated notes cover the commit range between tags; they do not filter pull requests by chart directory, so a monorepo release can include changes to other charts.
 
 For notes specific to each chart, prepare a Markdown file inside each chart before packaging, then select it with a config file:
 
