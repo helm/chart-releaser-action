@@ -15,6 +15,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate explicit chart processing
         run: bash .github/scripts/test-explicit-charts.sh
+      - name: Validate replacement publishing modes
+        run: bash .github/scripts/test-replacement.sh
 
   test_chart_releaser_install_action:
     runs-on: ubuntu-latest

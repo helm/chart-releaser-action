@@ -76,11 +76,42 @@ Supply chart directories to package selected charts even when Git reports no cha
 
 Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed; `chart_version` is empty because this mode does not select a comparison tag.
 
-This bypasses discovery only. Versions still come from `Chart.yaml`, and existing release/asset collision behavior is unchanged: existing releases fail unless skipping is enabled. It does not overwrite artifacts or repair an index using previously published packages. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
+This bypasses discovery only. Versions still come from `Chart.yaml`. Existing releases fail unless skipping or [replacement](#replacing-an-existing-chart-version) is enabled. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
+
+### Replacing an existing chart version
+
+With chart-releaser v1.10.0 or later, set `CR_REPLACE_EXISTING: "true"` to replace the archive and optional provenance of an existing mutable GitHub release and refresh that version's index metadata, URLs, and checksum. The environment variable applies to both upload and index commands. Use `charts` to process the selected chart even when Git detects no changes:
+
+```yaml
+- name: Replace selected chart
+  uses: helm/chart-releaser-action@main
+  with:
+    charts: charts/my-chart
+    # Optional: also replace packages hosted on the Pages branch.
+    # packages_with_index: true
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    CR_REPLACE_EXISTING: "true"
+```
+
+Keep the version in `Chart.yaml` unchanged to replace that version. Release identity, tag, notes, other release metadata, and unrelated assets are preserved. Replacing a signed package with an unsigned package removes stale provenance. Immutable releases cannot be replaced; publish a new chart version instead.
+
+Do not combine replacement with `skip_existing` or `CR_SKIP_EXISTING`, and leave `skip_upload` unset so the index is updated. For `packages_with_index: true`, enable replacement through the environment variable as shown above; this disables the action's automatic `--skip-existing` flag. Setting only `replace-existing` in a CLI config file does not disable that automatic flag. Default Pages behavior still skips existing releases and preserves existing packages.
+
+Serialize publishing jobs, for example with a workflow-level concurrency group shared by all publishers of the same repository:
+
+```yaml
+concurrency:
+  group: chart-publishing-${{ github.repository }}
+  cancel-in-progress: false
+```
+
+Release assets and Pages/index updates are separate operations. If interrupted, inspect reported temporary assets and rerun upload and index with the same packages; retain the original archives and provenance and use `skip_packaging: true` for recovery. Consumers may cache previously published bytes, so publishing a new version is generally preferable. See the [CLI replacement documentation](https://github.com/helm/chart-releaser#replacing-mutable-chart-releases) for recovery details.
 
 ### Environment variables
 
 - `CR_TOKEN` (required): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
+- `CR_REPLACE_EXISTING`: Set to `"true"` to replace existing mutable chart assets and refresh matching index entries. Requires chart-releaser v1.10.0 or later; see [replacement](#replacing-an-existing-chart-version).
 
 For more information on environment variables, see the [documentation](https://github.com/helm/chart-releaser#environment-variables).
 
