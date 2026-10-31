@@ -57,7 +57,7 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 ### Outputs
 
 - `changed_charts`: A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them.
-- `chart_version`: The version of the most recently generated charts; will be empty when explicit `charts` are supplied.
+- `chart_version`: The version of the most recently generated charts, as a comma-separated list of `<name>-<version>` entries.
 
 ### Explicit chart processing
 
@@ -74,7 +74,7 @@ Supply chart directories to package selected charts even when Git reports no cha
     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
 
-Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed; `chart_version` is empty because this mode does not select a comparison tag.
+Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed and `chart_version` lists their packaged `<name>-<version>` entries.
 
 This bypasses discovery only. Versions still come from `Chart.yaml`, and existing release/asset collision behavior is unchanged: existing releases fail unless skipping is enabled. It does not overwrite artifacts or repair an index using previously published packages. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
 

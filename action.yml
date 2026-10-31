@@ -76,7 +76,7 @@ outputs:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
     value: ${{ steps.release.outputs.changed_charts }}
   chart_version:
-    description: "The version of the most recently generated charts; will be empty when explicit charts are supplied."
+    description: "The version of the most recently generated charts, as a comma-separated list of `<name>-<version>` entries."
     value: ${{ steps.release.outputs.chart_version }}
 
 runs:
