@@ -497,9 +497,17 @@ release_charts() {
     args+=(--config "$config")
   fi
   if [[ "$packages_with_index" = true ]]; then
-    args+=(--packages-with-index --push --skip-existing)
-  elif [[ -n "$skip_existing" ]]; then
+    args+=(--packages-with-index --push)
+  fi
+  if [[ -n "$skip_existing" ]]; then
     args+=(--skip-existing)
+  elif [[ "$packages_with_index" = true ]]; then
+    # Match the true values accepted by the CLI's Go boolean parser. Leave
+    # replacement in the environment so upload and index receive the same mode.
+    case "${CR_REPLACE_EXISTING:-false}" in
+    1 | t | T | true | TRUE | True) ;;
+    *) args+=(--skip-existing) ;;
+    esac
   fi
   if [[ "$mark_as_latest" = false ]]; then
     args+=(--make-release-latest=false)
