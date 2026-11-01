@@ -43,6 +43,7 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts`: Optional newline-separated chart directory paths, relative to the checkout directory. When set, only these charts are processed, without Git change detection. Takes precedence over `charts_dir` and `match_tags`; cannot be combined with `skip_packaging`.
+- `ignore_paths`: Optional newline-separated Bash glob patterns, relative to each chart root, to exclude from Git change detection. Patterns match paths of files within the chart, and `*` can match across `/`. For example, use `README.md` and `.helmignore` to ignore changes to those files. Empty by default, preserving existing behavior; this does not affect explicitly selected charts supplied through `charts`.
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for example with OCI based repositories) which doesn't require the `index.yaml`.

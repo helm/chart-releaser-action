@@ -45,10 +45,11 @@ set -euo pipefail
 echo "$1" >> "$CR_COMMAND_TRACE"
 if [[ "$1" == package ]]; then
   printf '%s\n' "$2" >> "$CR_PACKAGE_TRACE"
+  version=$(sed -n 's/^version: //p' "$2/Chart.yaml")
   fixture_dir=$(mktemp -d)
   mkdir -p "$fixture_dir/fixture"
   cp "$2/Chart.yaml" "$fixture_dir/fixture/Chart.yaml"
-  tar -czf "$4/fixture-0.1.0.tgz" -C "$fixture_dir" fixture
+  tar -czf "$4/fixture-$version.tgz" -C "$fixture_dir" fixture
   rm -rf "$fixture_dir"
 elif [[ "$1" == upload && "${CR_FAIL_UPLOAD:-false}" == true ]]; then
   exit 42
@@ -68,6 +69,7 @@ done
 printf 'generated/\n' > .gitignore
 git add .gitignore Chart.yaml charts
 git commit -qm 'Unchanged chart fixtures'
+git tag initial-charts
 export PATH="$test_root/bin:$PATH"
 
 reset_trace() {
@@ -87,13 +89,56 @@ test ! -s "$CR_COMMAND_TRACE"
 test "$(cat changed_charts.txt)" = 'changed_charts='
 echo 'PASS: automatic discovery stays the default and detects no changes.'
 
+mkdir -p charts/one/docs
+printf 'Chart documentation\n' > charts/one/README.md
+printf 'README.md\n' > charts/one/.helmignore
+printf 'Release notes\n' > charts/one/docs/notes.md
+git add charts/one/README.md charts/one/.helmignore charts/one/docs/notes.md
+git commit -qm 'Add chart documentation'
+
+reset_trace
+run_action
+test "$(cat "$CR_PACKAGE_TRACE")" = charts/one
+echo 'PASS: documentation changes still trigger packaging when no ignore paths are configured.'
+
+git tag before-ignored-chart-files
+printf 'Updated chart documentation\n' > charts/one/README.md
+printf 'Updated ignore rules\n' > charts/one/.helmignore
+printf 'Updated release notes\n' > charts/one/docs/notes.md
+git add charts/one/README.md charts/one/.helmignore charts/one/docs/notes.md
+git commit -qm 'Update ignored chart files'
+
+reset_trace
+run_action --ignore-paths $'README.md\r\n.helmignore\n \ndocs/*\n' > "$test_root/ignored-paths.log" 2>&1 || {
+  cat "$test_root/ignored-paths.log" >&2
+  exit 1
+}
+test ! -s "$CR_PACKAGE_TRACE"
+test "$(cat changed_charts.txt)" = 'changed_charts='
+echo 'PASS: configured chart-relative glob patterns exclude matching file changes.'
+
+printf 'apiVersion: v2\nname: fixture\nversion: 0.1.1\n' > charts/one/Chart.yaml
+git add charts/one/Chart.yaml
+git commit -qm 'Bump chart version'
+
+reset_trace
+run_action --ignore-paths $'README.md\n.helmignore\ndocs/*'
+test "$(cat "$CR_PACKAGE_TRACE")" = charts/one
+test "$(cat changed_charts.txt)" = 'changed_charts=charts/one'
+echo 'PASS: non-ignored changes still trigger packaging alongside ignored path patterns.'
+
+reset_trace
+run_action --charts charts/one --ignore-paths README.md
+test "$(cat "$CR_PACKAGE_TRACE")" = charts/one
+echo 'PASS: explicit chart selection is not affected by ignore paths.'
+
 reset_trace
 run_action --charts $'charts/one\r\ncharts/with space\n./charts/one/\ngenerated/ignored\n\n' --charts-dir unused --match-tags 'unmatched-*'
 test ! -s "$FETCH_TRACE"
 printf 'charts/one\ncharts/with space\ngenerated/ignored\n' > "$test_root/expected-packages"
 diff -u "$test_root/expected-packages" "$CR_PACKAGE_TRACE"
 test "$(cat changed_charts.txt)" = 'changed_charts=charts/one,charts/with space,generated/ignored'
-test "$(cat chart_version.txt)" = 'chart_version=fixture-0.1.0,fixture-0.1.0,fixture-0.1.0'
+test "$(cat chart_version.txt)" = 'chart_version=fixture-0.1.1,fixture-0.1.0,fixture-0.1.0'
 echo 'PASS: explicit selection bypasses tags/diffs and supports spaces, CRLF, ignored charts, and deduplication.'
 
 reset_trace
@@ -141,7 +186,7 @@ echo 'PASS: release failures still stop processing before index updates.'
 reset_trace
 env -u CR_TOKEN bash "$action_script" --owner test --repo fixtures --install-dir "$install_dir" --charts charts/one --skip-release true
 test "$(cat "$CR_COMMAND_TRACE")" = package
-test -f .cr-release-packages/fixture-0.1.0.tgz
+test -f .cr-release-packages/fixture-0.1.1.tgz
 test "$(cat changed_charts.txt)" = 'changed_charts=charts/one'
 echo 'PASS: skip-release only packages charts and does not require CR_TOKEN.'
 
