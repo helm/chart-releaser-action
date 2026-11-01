@@ -30,6 +30,7 @@ Usage: $(basename "$0") <options>
     -d, --charts-dir              The charts directory (default: charts)
         --charts                  Newline-separated chart directories to process without Git change detection
         --ignore-paths            Newline-separated glob patterns to ignore during Git change detection
+        --package-path            Directory for chart packages (default: .cr-release-packages)
     -o, --owner                   The repo owner
     -r, --repo                    The repo name
         --pages-branch            The repo pages branch
@@ -55,6 +56,7 @@ main() {
   local charts_dir=charts
   local charts=
   local ignore_paths=
+  local package_path=.cr-release-packages
   local owner=
   local repo=
   local match_tags=
@@ -91,6 +93,7 @@ main() {
   local repo_root
   repo_root=$(git rev-parse --show-toplevel)
   pushd "$repo_root" >/dev/null
+  rm -f changed_charts.txt chart_version.txt releases.txt
 
   if [[ -z "$skip_packaging" ]]; then
     local latest_tag=
@@ -109,15 +112,16 @@ main() {
     fi
 
     if [[ -n "${changed_charts[*]}" ]]; then
+      prepare_package_path || return 1
       install_chart_releaser
 
-      rm -rf .cr-release-packages
-      mkdir -p .cr-release-packages
+      clear_package_path || return 1
 
       rm -rf .cr-index
       mkdir -p .cr-index
 
       local packaged_chart_versions=()
+      local packaged_chart_releases=()
       for chart in "${changed_charts[@]}"; do
         if [[ -d "$chart" ]]; then
           package_chart "$chart" || return 1
@@ -141,12 +145,20 @@ main() {
       )" >changed_charts.txt
 
       echo "chart_version=$chart_versions" >chart_version.txt
+      local releases_json
+      if ! releases_json=$(printf '%s\n' "${packaged_chart_releases[@]}" | jq -sc '.'); then
+        echo "ERROR: Failed to encode release output as JSON." >&2
+        return 1
+      fi
+      printf 'releases=%s\n' "$releases_json" >releases.txt
     else
       echo "Nothing to do. No chart changes detected."
       echo "changed_charts=" >changed_charts.txt
       echo "chart_version=" >chart_version.txt
+      echo 'releases=[]' >releases.txt
     fi
   else
+    prepare_package_path || return 1
     install_chart_releaser
     rm -rf .cr-index
     mkdir -p .cr-index
@@ -201,6 +213,16 @@ parse_command_line() {
         shift
       else
         echo "ERROR: '--ignore-paths' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
+    --package-path)
+      if [[ -n "${2:-}" ]]; then
+        package_path="$2"
+        shift
+      else
+        echo "ERROR: '--package-path' cannot be empty." >&2
         show_help
         exit 1
       fi
@@ -369,9 +391,46 @@ install_chart_releaser() {
       architecture=linux_arm64
     fi
     echo "Installing chart-releaser on $install_dir..."
-    curl -sSLo cr.tar.gz "https://github.com/helm/chart-releaser/releases/download/$version/chart-releaser_${version#v}_${architecture}.tar.gz"
-    tar -xzf cr.tar.gz -C "$install_dir"
-    rm -f cr.tar.gz
+    local archive="chart-releaser_${version#v}_${architecture}.tar.gz"
+    local release_url="https://github.com/helm/chart-releaser/releases/download/$version"
+    local download_dir
+    download_dir=$(mktemp -d)
+
+    if ! curl -fsSLo "$download_dir/$archive" "$release_url/$archive"; then
+      echo "ERROR: Failed to download chart-releaser archive '$archive'." >&2
+      rm -rf "$download_dir"
+      return 1
+    fi
+    if ! curl -fsSLo "$download_dir/checksums.txt" "$release_url/checksums.txt"; then
+      echo "ERROR: Failed to download chart-releaser checksums." >&2
+      rm -rf "$download_dir"
+      return 1
+    fi
+
+    local checksum_line
+    if ! checksum_line=$(awk -v archive="$archive" '$2 == archive { print; count++ } END { if (count != 1) exit 1 }' "$download_dir/checksums.txt"); then
+      echo "ERROR: Expected exactly one checksum for '$archive'." >&2
+      rm -rf "$download_dir"
+      return 1
+    fi
+    local expected_checksum="${checksum_line%%[[:space:]]*}"
+    local actual_checksum
+    if ! actual_checksum=$(shasum -a 256 "$download_dir/$archive" | awk '{ print $1 }'); then
+      echo "ERROR: Failed to calculate checksum for '$archive'." >&2
+      rm -rf "$download_dir"
+      return 1
+    fi
+    if [[ "$actual_checksum" != "$expected_checksum" ]]; then
+      echo "ERROR: Checksum verification failed for '$archive'." >&2
+      rm -rf "$download_dir"
+      return 1
+    fi
+    if ! tar -xzf "$download_dir/$archive" -C "$install_dir"; then
+      echo "ERROR: Failed to extract chart-releaser archive '$archive'." >&2
+      rm -rf "$download_dir"
+      return 1
+    fi
+    rm -rf "$download_dir"
   fi
 
   echo 'Adding cr directory to PATH...'
@@ -495,26 +554,70 @@ package_chart() {
     return 1
   fi
 
-  local packaged_identity
-  if ! packaged_identity=$(lookup_packaged_chart_identity "${packages[0]}"); then
+  local packaged_metadata packaged_chart_name packaged_chart_version packaged_identity
+  if ! packaged_metadata=$(lookup_packaged_chart_metadata "${packages[0]}"); then
     echo "ERROR: Failed to read packaged chart metadata for '$chart'" >&2
     return 1
   fi
+  IFS=$'\t' read -r packaged_chart_name packaged_chart_version <<<"$packaged_metadata"
+  packaged_identity="$packaged_chart_name-$packaged_chart_version"
 
   if [[ "$(basename "${packages[0]}" .tgz)" != "$packaged_identity" ]]; then
     echo "ERROR: Packaged chart filename does not match '$packaged_identity'" >&2
     return 1
   fi
 
-  cp -f "${packages[0]}" .cr-release-packages/ || return 1
+  cp -f "${packages[0]}" "$package_path/" || return 1
   if [[ -f "${packages[0]}.prov" ]]; then
-    cp -f "${packages[0]}.prov" .cr-release-packages/ || return 1
+    cp -f "${packages[0]}.prov" "$package_path/" || return 1
   fi
+  local release_json
+  if ! release_json=$(jq -cn \
+    --arg chart "$packaged_chart_name" \
+    --arg version "$packaged_chart_version" \
+    --arg tag "$packaged_identity" \
+    '{chart: $chart, version: $version, tag: $tag}'); then
+    echo "ERROR: Failed to encode release output for '$chart' as JSON." >&2
+    return 1
+  fi
+  packaged_chart_releases+=("$release_json")
   packaged_chart_versions+=("$packaged_identity")
   rm -rf "$tmp_dir"
 }
 
-lookup_packaged_chart_identity() {
+clear_package_path() {
+  local package
+  for package in "$package_path"/*.tgz "$package_path"/*.tgz.prov; do
+    if [[ -f "$package" ]]; then
+      rm -f "$package" || return 1
+    fi
+  done
+}
+
+prepare_package_path() {
+  if [[ "$package_path" == /* || "/$package_path/" == *"/../"* ]]; then
+    echo "ERROR: Package path must be a relative subdirectory of the checkout." >&2
+    return 1
+  fi
+  if [[ "$package_path" == -* ]]; then
+    package_path="./$package_path"
+  fi
+  mkdir -p "$package_path" || return 1
+
+  local resolved_path resolved_repo_root
+  resolved_path=$(cd "$package_path" && pwd -P) || return 1
+  resolved_repo_root=$(cd "$repo_root" && pwd -P) || return 1
+  case "$resolved_path" in
+    "$resolved_repo_root"/*)
+      ;;
+    *)
+      echo "ERROR: Package path must be a subdirectory of the checkout." >&2
+      return 1
+      ;;
+  esac
+}
+
+lookup_packaged_chart_metadata() {
   local chart="$1"
   local metadata metadata_path
 
@@ -540,7 +643,7 @@ lookup_packaged_chart_identity() {
       if (name !~ /^[[:alnum:]][[:alnum:]._-]*$/ || version !~ /^[[:alnum:]][[:alnum:].+_-]*$/) {
         exit 1
       }
-      print name "-" version
+      printf "%s\t%s\n", name, version
     }
   ' <<<"$metadata"
 }
@@ -556,6 +659,7 @@ release_charts() {
   fi
 
   local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
+  args+=(--package-path "$package_path")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi
@@ -588,7 +692,7 @@ push_charts() {
     return
   fi
 
-  local args=(--registry-url "$oci_registry_url" --package-path .cr-release-packages)
+  local args=(--registry-url "$oci_registry_url" --package-path "$package_path")
   if [[ -n "$oci_username" ]]; then
     args+=(--username "$oci_username")
   fi
@@ -612,6 +716,7 @@ update_index() {
   ensure_pages_branch
 
   local args=(-o "$owner" -r "$repo" --push)
+  args+=(--package-path "$package_path")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
   fi

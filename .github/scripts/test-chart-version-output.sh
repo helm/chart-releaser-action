@@ -131,6 +131,11 @@ if [[ "$actual_version" != "$expected_version" ]]; then
   echo "expected '$expected_version' but got '$actual_version'" >&2
   exit 1
 fi
+expected_releases='[{"chart":"common-service","version":"0.1.2","tag":"common-service-0.1.2"}]'
+if [[ "$(sed 's/^releases=//' releases.txt | jq -c .)" != "$expected_releases" ]]; then
+  echo "expected '$expected_releases' but got '$(cat releases.txt)'" >&2
+  exit 1
+fi
 
 git tag common-service-0.1.2
 
@@ -192,10 +197,15 @@ if [[ "$actual_version" != "$expected_version" ]]; then
   echo "expected '$expected_version' but got '$actual_version'" >&2
   exit 1
 fi
+expected_releases='[{"chart":"app-0helper","version":"2.0.0","tag":"app-0helper-2.0.0"},{"chart":"app","version":"1.0.0","tag":"app-1.0.0"},{"chart":"actual-chart-name","version":"3.0.0","tag":"actual-chart-name-3.0.0"},{"chart":"indented-example","version":"1.2.3","tag":"indented-example-1.2.3"},{"chart":"numeric-example","version":"1","tag":"numeric-example-1"},{"chart":"quoted-example","version":"1.2.3","tag":"quoted-example-1.2.3"}]'
+if [[ "$(sed 's/^releases=//' releases.txt | jq -c .)" != "$expected_releases" ]]; then
+  echo "expected '$expected_releases' but got '$(cat releases.txt)'" >&2
+  exit 1
+fi
 
 runtime_bin="$test_root/runtime-bin"
 mkdir -p "$runtime_bin"
-for runtime_command in awk bash basename cat cmp cp cut git gzip mkdir rm sed sh tar tr uname uniq wc; do
+for runtime_command in awk bash basename cat cmp cp cut git gzip jq mkdir paste rm sed sh tar tr uname uniq wc; do
   command_path=$(command -v "$runtime_command")
   printf '#!%s\nexec %q "$@"\n' "$BASH" "$command_path" >"$runtime_bin/$runtime_command"
   chmod +x "$runtime_bin/$runtime_command"
@@ -206,7 +216,7 @@ if PATH="$runtime_bin" bash -c 'command -v helm'; then
   exit 1
 fi
 
-rm -f chart_version.txt "$CR_TEST_PUBLISH_LOG"
+rm -f chart_version.txt releases.txt "$CR_TEST_PUBLISH_LOG"
 PATH="$runtime_bin" bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"
 
 if [[ "$(<chart_version.txt)" != "$expected_version" ]]; then
@@ -221,7 +231,7 @@ fi
 
 provenance_fixture="$test_root/provenance.fixture"
 printf 'signed provenance\r\nsha256: test-digest\nsignature: ABC123==\n' >"$provenance_fixture"
-rm -f chart_version.txt "$CR_TEST_PUBLISH_LOG"
+rm -f chart_version.txt releases.txt "$CR_TEST_PUBLISH_LOG"
 PATH="$runtime_bin" CR_TEST_PROVENANCE_FIXTURE="$provenance_fixture" bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"
 
 if [[ "$(<chart_version.txt)" != "$expected_version" || "$(<"$CR_TEST_PUBLISH_LOG")" != $'upload\nindex' ]]; then
@@ -229,15 +239,15 @@ if [[ "$(<chart_version.txt)" != "$expected_version" || "$(<"$CR_TEST_PUBLISH_LO
   exit 1
 fi
 
-rm -f chart_version.txt "$CR_TEST_PUBLISH_LOG"
+rm -f chart_version.txt releases.txt "$CR_TEST_PUBLISH_LOG"
 echo "Testing expected failure for a corrupted package (errors below are intentional)"
 if PATH="$runtime_bin" CR_TEST_CORRUPT_PACKAGE=true bash "$repo_root/cr.sh" --owner helm --repo chart-releaser-action --install-dir "$install_dir"; then
   echo "expected a nonzero action exit when package metadata lookup fails" >&2
   exit 1
 fi
 
-if [[ -f chart_version.txt || -f "$CR_TEST_PUBLISH_LOG" ]]; then
-  echo "metadata lookup failure must not write chart_version or publish charts" >&2
+if [[ -f chart_version.txt || -f releases.txt || -f "$CR_TEST_PUBLISH_LOG" ]]; then
+  echo "metadata lookup failure must not write outputs or publish charts" >&2
   exit 1
 fi
 
