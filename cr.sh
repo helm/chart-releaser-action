@@ -37,6 +37,7 @@ Usage: $(basename "$0") <options>
     -s, --skip-packaging          Skip the packaging step (run your own packaging before using the releaser)
         --skip-existing           Skip package upload if release exists
         --skip-upload             Skip package upload, just create the release. Not needed in case of OCI upload.
+        --skip-release            Skip creating GitHub releases and updating the index; only package (and push to OCI if configured)
     -l, --mark-as-latest          Mark the created GitHub release as 'latest' (default: true)
     -m, --match-tags              The glob to use to filter Git tags (default: all tags)
         --packages-with-index     Upload chart packages directly into publishing branch
@@ -60,6 +61,7 @@ main() {
   local skip_packaging=
   local skip_existing=
   local skip_upload=
+  local skip_release=false
   local mark_as_latest=true
   local packages_with_index=false
   local pages_branch=
@@ -75,7 +77,14 @@ main() {
     exit 1
   fi
 
-  : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
+  if [[ "$skip_release" = true && "$packages_with_index" = true ]]; then
+    echo "ERROR: '--skip-release' cannot be combined with '--packages-with-index'." >&2
+    exit 1
+  fi
+
+  if [[ "$skip_release" != true ]]; then
+    : "${CR_TOKEN:?Environment variable CR_TOKEN must be set}"
+  fi
 
   local repo_root
   repo_root=$(git rev-parse --show-toplevel)
@@ -258,6 +267,12 @@ parse_command_line() {
       if [[ -n "${2:-}" ]]; then
           skip_upload="$2"
           shift
+      fi
+      ;;
+    --skip-release)
+      if [[ -n "${2:-}" ]]; then
+        skip_release="$2"
+        shift
       fi
       ;;
     -l | --mark-as-latest)
@@ -492,6 +507,11 @@ lookup_packaged_chart_identity() {
 }
 
 release_charts() {
+  if [[ "$skip_release" = true ]]; then
+    echo 'Skipping GitHub release...'
+    return
+  fi
+
   local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
@@ -533,7 +553,7 @@ push_charts() {
 }
 
 update_index() {
-  if [[ -n "$skip_upload" ]]; then
+  if [[ -n "$skip_upload" || "$skip_release" = true ]]; then
     echo "Skipping index upload..."
     return
   fi

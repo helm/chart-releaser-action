@@ -137,3 +137,25 @@ if CR_FAIL_UPLOAD=true run_action --charts charts/one; then
 fi
 test "$(tail -1 "$CR_COMMAND_TRACE")" = upload
 echo 'PASS: release failures still stop processing before index updates.'
+
+reset_trace
+env -u CR_TOKEN bash "$action_script" --owner test --repo fixtures --install-dir "$install_dir" --charts charts/one --skip-release true
+test "$(cat "$CR_COMMAND_TRACE")" = package
+test -f .cr-release-packages/fixture-0.1.0.tgz
+test "$(cat changed_charts.txt)" = 'changed_charts=charts/one'
+echo 'PASS: skip-release only packages charts and does not require CR_TOKEN.'
+
+reset_trace
+run_action --charts charts/one --skip-release true --oci-registry-url oci://registry.invalid/charts
+printf 'package\npush\n' > "$test_root/expected-commands"
+diff -u "$test_root/expected-commands" "$CR_COMMAND_TRACE"
+echo 'PASS: skip-release still pushes to the OCI registry.'
+
+reset_trace
+if run_action --charts charts/one --skip-release true --packages-with-index true > "$test_root/skip-release.log" 2>&1; then
+  echo 'Expected skip-release with packages-with-index to fail' >&2
+  exit 1
+fi
+grep -F "'--skip-release' cannot be combined" "$test_root/skip-release.log"
+test ! -s "$CR_COMMAND_TRACE"
+echo 'PASS: skip-release conflicts with packages-with-index.'

@@ -48,6 +48,10 @@ inputs:
   skip_upload:
     description: "Skip package upload"
     required: false
+  skip_release:
+    description: "Skip creating GitHub releases and updating the index. Charts are only packaged into .cr-release-packages and pushed to oci_registry_url if set; CR_TOKEN is not required. Cannot be combined with packages_with_index."
+    required: false
+    default: "false"
   mark_as_latest:
     description: Mark the created GitHub release as 'latest'
     required: false
@@ -76,7 +80,7 @@ outputs:
     description: "A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them."
     value: ${{ steps.release.outputs.changed_charts }}
   chart_version:
-    description: "The version of the most recently generated charts; will be empty when explicit charts are supplied."
+    description: "The version of the most recently generated charts, as a comma-separated list of `<name>-<version>` entries."
     value: ${{ steps.release.outputs.chart_version }}
 
 runs:
@@ -99,6 +103,7 @@ runs:
         skip_existing: ${{ inputs.skip_existing }}
         skip_packaging: ${{ inputs.skip_packaging }}
         skip_upload: ${{ inputs.skip_upload }}
+        skip_release: ${{ inputs.skip_release }}
         version: ${{ inputs.version }}
       run: |
         owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
@@ -142,6 +147,10 @@ runs:
 
         if [[ -n "$skip_upload" ]]; then
             args+=(--skip-upload "$skip_upload")
+        fi
+
+        if [[ -n "$skip_release" ]]; then
+            args+=(--skip-release "$skip_release")
         fi
 
         if [[ -n "$mark_as_latest" ]]; then

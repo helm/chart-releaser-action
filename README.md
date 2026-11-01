@@ -46,6 +46,7 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for example with OCI based repositories) which doesn't require the `index.yaml`.
+- `skip_release`: When set to `true`, no GitHub release is created and the index is not updated. Charts are only packaged into `.cr-release-packages` and pushed to `oci_registry_url` when it is set, so you can publish them elsewhere (for example with `actions/upload-artifact`). `CR_TOKEN` is not required in this mode. Cannot be combined with `packages_with_index`.
 - `mark_as_latest`: When set to `false`, the created GitHub release will not be marked as the "latest" release on the repository's releases page.
 - `match_tags`: The glob to use to filter Git tags, usually used with the `CR_RELEASE_NAME_TEMPLATE` environment variable (default: all tags)
 - `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
@@ -57,7 +58,7 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 ### Outputs
 
 - `changed_charts`: A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them.
-- `chart_version`: The version of the most recently generated charts; will be empty when explicit `charts` are supplied.
+- `chart_version`: The version of the most recently generated charts, as a comma-separated list of `<name>-<version>` entries.
 
 ### Explicit chart processing
 
@@ -74,13 +75,13 @@ Supply chart directories to package selected charts even when Git reports no cha
     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
 
-Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed; `chart_version` is empty because this mode does not select a comparison tag.
+Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed and `chart_version` lists their packaged `<name>-<version>` entries.
 
 This bypasses discovery only. Versions still come from `Chart.yaml`, and existing release/asset collision behavior is unchanged: existing releases fail unless skipping is enabled. It does not overwrite artifacts or repair an index using previously published packages. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
 
 ### Environment variables
 
-- `CR_TOKEN` (required): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
+- `CR_TOKEN` (required unless `skip_release` is `true`): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
 
 For more information on environment variables, see the [documentation](https://github.com/helm/chart-releaser#environment-variables).
 
@@ -217,6 +218,16 @@ When `oci_registry_url` is set, the action pushes each packaged chart to the OCI
 ```
 
 If you prefer to pass credentials directly to the action instead of using `docker/login-action`, set the `oci_username` and `oci_password` inputs.
+
+To push to the OCI registry only, without creating GitHub releases or updating the GitHub Pages index, set `skip_release: true`:
+
+```yaml
+- name: Run chart-releaser
+  uses: helm/chart-releaser-action@v1.9.0
+  with:
+    oci_registry_url: oci://ghcr.io/${{ github.repository_owner }}/charts
+    skip_release: true
+```
 
 ## Code of conduct
 
