@@ -8,26 +8,14 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to
    maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
-1. A GitHub branch called `gh-pages` to store the index and, optionally, chart packages. See [Publishing branch setup](#publishing-branch-setup).
-1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
+1. A GitHub branch to store the index and, optionally, chart packages. If the configured `pages_branch` (default: `gh-pages`) does not exist, the action creates it as an empty branch before publishing. The workflow needs `contents: write` permission.
+1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to the configured publishing branch (default: `gh-pages`).
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
    For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 #### Publishing branch setup
 
-Create the publishing branch separately from the source branch so it does not inherit source files, workflows, or `.gitignore` rules. For example, create an empty orphan branch in a temporary worktree:
-
-```bash
-git worktree add --detach ../chart-releaser-pages HEAD
-cd ../chart-releaser-pages
-git switch --orphan gh-pages
-git commit --allow-empty -m "Initialize gh-pages"
-git push origin gh-pages
-cd -
-git worktree remove ../chart-releaser-pages
-```
-
-Run this once, before the first release. If you configure `pages_branch`, use that branch name instead of `gh-pages`.
+The action creates a missing publishing branch as an empty branch, separate from the source branch, so it does not inherit source files, workflows, or `.gitignore` rules. This happens only when charts are published; it does not create the branch when there are no chart changes or when index uploads are skipped. If you configure `pages_branch` in the action or `pages-branch` in the chart-releaser config, that branch is initialized instead of `gh-pages`.
 
 When `packages_with_index: true` is enabled, the action commits `.tgz` chart packages alongside `index.yaml`. The publishing branch's `.gitignore` must allow those files. In particular, remove an inherited `*.tgz` rule if Git reports `The following paths are ignored by one of your .gitignore files`. You can still ignore `.tgz` files on the source branch; its ignore rules do not apply to a separate publishing branch.
 

@@ -20,6 +20,8 @@ action_script="$(git rev-parse --show-toplevel)/cr.sh"
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export HOME="$test_root/home"
+mkdir -p "$HOME"
 export REAL_GIT
 REAL_GIT=$(command -v git)
 export FETCH_TRACE="$test_root/fetches"
@@ -32,7 +34,7 @@ mkdir -p "$test_root/bin" "$install_dir" "$test_root/repo"
 cat > "$test_root/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "$1" == fetch ]]; then
+if [[ "$1" == fetch && " $* " == *" --tags "* ]]; then
   echo fetch >> "$FETCH_TRACE"
   exit 0
 fi
@@ -42,6 +44,12 @@ EOF
 cat > "$install_dir/cr" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "$1" == upload && -n "${CR_TEST_EXPECT_PAGES_BRANCH:-}" ]]; then
+  if ! git show-ref --quiet --verify "refs/remotes/origin/$CR_TEST_EXPECT_PAGES_BRANCH"; then
+    echo "expected publishing branch '$CR_TEST_EXPECT_PAGES_BRANCH' before upload" >&2
+    exit 1
+  fi
+fi
 echo "$1" >> "$CR_COMMAND_TRACE"
 if [[ "$1" == package ]]; then
   printf '%s\n' "$2" >> "$CR_PACKAGE_TRACE"
@@ -70,6 +78,9 @@ printf 'generated/\n' > .gitignore
 git add .gitignore Chart.yaml charts
 git commit -qm 'Unchanged chart fixtures'
 git tag initial-charts
+git init -q --bare "$test_root/origin.git"
+git remote add origin "$test_root/origin.git"
+git push -q origin HEAD:refs/heads/main
 export PATH="$test_root/bin:$PATH"
 
 reset_trace() {
@@ -87,6 +98,12 @@ run_action
 test -s "$FETCH_TRACE"
 test ! -s "$CR_COMMAND_TRACE"
 test "$(cat changed_charts.txt)" = 'changed_charts='
+if git ls-remote --exit-code --heads origin refs/heads/gh-pages >/dev/null; then
+  echo 'The publishing branch should not be created when no charts changed' >&2
+  exit 1
+else
+  test "$?" -eq 2
+fi
 echo 'PASS: automatic discovery stays the default and detects no changes.'
 
 mkdir -p charts/one/docs
@@ -139,7 +156,29 @@ printf 'charts/one\ncharts/with space\ngenerated/ignored\n' > "$test_root/expect
 diff -u "$test_root/expected-packages" "$CR_PACKAGE_TRACE"
 test "$(cat changed_charts.txt)" = 'changed_charts=charts/one,charts/with space,generated/ignored'
 test "$(cat chart_version.txt)" = 'chart_version=fixture-0.1.1,fixture-0.1.0,fixture-0.1.0'
+git ls-remote --exit-code --heads origin refs/heads/gh-pages >/dev/null
+test -z "$(git ls-tree -r --name-only refs/remotes/origin/gh-pages)"
 echo 'PASS: explicit selection bypasses tags/diffs and supports spaces, CRLF, ignored charts, and deduplication.'
+
+existing_pages_head=$(git rev-parse HEAD)
+git push -q origin HEAD:refs/heads/main
+git --git-dir="$test_root/origin.git" update-ref refs/heads/existing-pages "$existing_pages_head"
+reset_trace
+run_action --charts charts/one --pages-branch existing-pages
+test "$(git rev-parse refs/remotes/origin/existing-pages)" = "$existing_pages_head"
+echo 'PASS: existing publishing branches are fetched without being replaced.'
+
+config_file="$test_root/chart-releaser.yaml"
+printf 'pages-branch: "configured-pages" # custom publishing branch\n' > "$config_file"
+reset_trace
+run_action --charts charts/one --config "$config_file"
+git ls-remote --exit-code --heads origin refs/heads/configured-pages >/dev/null
+echo 'PASS: publishing branches configured in the chart-releaser config are initialized.'
+
+reset_trace
+CR_TEST_EXPECT_PAGES_BRANCH=packages-pages run_action --charts charts/one --pages-branch packages-pages --packages-with-index true
+git ls-remote --exit-code --heads origin refs/heads/packages-pages >/dev/null
+echo 'PASS: the publishing branch exists before packages-with-index processing.'
 
 reset_trace
 run_action --charts .

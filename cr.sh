@@ -551,6 +551,10 @@ release_charts() {
     return
   fi
 
+  if [[ "$packages_with_index" = true || -z "$skip_upload" ]]; then
+    ensure_pages_branch
+  fi
+
   local args=(-o "$owner" -r "$repo" -c "$(git rev-parse HEAD)")
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
@@ -597,6 +601,8 @@ update_index() {
     return
   fi
 
+  ensure_pages_branch
+
   local args=(-o "$owner" -r "$repo" --push)
   if [[ -n "$config" ]]; then
     args+=(--config "$config")
@@ -610,6 +616,150 @@ update_index() {
 
   echo 'Updating charts repo index...'
   cr index "${args[@]}"
+}
+
+read_config_value() {
+  local key="$1"
+  local config_file="$config"
+  if [[ -z "$config" ]]; then
+    config_file="${HOME:-}/.cr.yaml"
+    if [[ ! -f "$config_file" ]]; then
+      return
+    fi
+  fi
+  if [[ ! -f "$config_file" ]]; then
+    echo "ERROR: Configuration file '$config_file' does not exist." >&2
+    return 1
+  fi
+
+  local value
+  if ! value=$(awk -v key="$key" '
+    function trim(text) {
+      sub(/^[[:space:]]+/, "", text)
+      sub(/[[:space:]]+$/, "", text)
+      return text
+    }
+    {
+      line = $0
+      sub(/^[[:space:]]+/, "", line)
+      if (line !~ ("^" key "[[:space:]]*:")) {
+        next
+      }
+
+      sub(/^[^:]*:[[:space:]]*/, "", line)
+      line = trim(line)
+      quote = substr(line, 1, 1)
+      if (quote == "\"" || quote == sprintf("%c", 39)) {
+        end = 0
+        escaped = 0
+        for (i = 2; i <= length(line); i++) {
+          char = substr(line, i, 1)
+          if (quote == "\"" && char == "\\" && !escaped) {
+            escaped = 1
+            continue
+          }
+          if (char == quote && !escaped) {
+            end = i
+            break
+          }
+          escaped = 0
+        }
+        if (end == 0) {
+          exit 1
+        }
+        trailing = trim(substr(line, end + 1))
+        if (trailing != "" && substr(trailing, 1, 1) != "#") {
+          exit 1
+        }
+        line = substr(line, 2, end - 2)
+      } else {
+        sub(/[[:space:]]+#.*$/, "", line)
+        line = trim(line)
+      }
+      print line
+      exit
+    }
+  ' "$config_file"); then
+    echo "ERROR: Unable to read '$key' from configuration file '$config_file'." >&2
+    return 1
+  fi
+
+  printf '%s' "$value"
+}
+
+remote_branch_exists() {
+  local remote="$1"
+  local branch_ref="$2"
+  local refs ref
+  if ! refs=$(git ls-remote --heads "$remote" "$branch_ref"); then
+    return 2
+  fi
+
+  while IFS=$'\t' read -r _ ref; do
+    if [[ "$ref" == "$branch_ref" ]]; then
+      return 0
+    fi
+  done <<<"$refs"
+  return 1
+}
+
+ensure_pages_branch() {
+  local branch="$pages_branch"
+  if [[ -z "$branch" ]]; then
+    branch=$(read_config_value pages-branch) || return 1
+  fi
+  branch=${branch:-gh-pages}
+
+  local remote
+  remote=$(read_config_value remote) || return 1
+  remote=${remote:-origin}
+
+  local branch_ref="refs/heads/$branch"
+  if ! git check-ref-format "$branch_ref"; then
+    echo "ERROR: Invalid publishing branch name '$branch'." >&2
+    return 1
+  fi
+
+  local remote_branch_ref="refs/remotes/$remote/$branch"
+  local lookup_status
+  if remote_branch_exists "$remote" "$branch_ref"; then
+    :
+  else
+    lookup_status=$?
+    if [[ "$lookup_status" -ne 1 ]]; then
+      echo "ERROR: Unable to check whether publishing branch '$branch' exists on '$remote'." >&2
+      return "$lookup_status"
+    fi
+
+    echo "Publishing branch '$branch' does not exist; creating an empty branch..."
+    local empty_tree empty_commit actor actor_id
+    empty_tree=$(git mktree </dev/null) || return 1
+    actor="${GITHUB_ACTOR:-github-actions[bot]}"
+    actor_id="${GITHUB_ACTOR_ID:-41898282}"
+    empty_commit=$(
+      git -c user.name="$actor" \
+        -c user.email="$actor_id+$actor@users.noreply.github.com" \
+        commit-tree "$empty_tree" -m "Initialize $branch"
+    ) || return 1
+
+    if git push "$remote" "$empty_commit:$branch_ref"; then
+      echo "Created publishing branch '$branch'."
+    else
+      local push_status=$?
+      if remote_branch_exists "$remote" "$branch_ref"; then
+        echo "Publishing branch '$branch' was created concurrently; continuing."
+      else
+        lookup_status=$?
+        if [[ "$lookup_status" -ne 1 ]]; then
+          echo "ERROR: Unable to verify publishing branch '$branch' after the push failed." >&2
+        fi
+        echo "ERROR: Unable to create publishing branch '$branch'. Check the repository's write permissions." >&2
+        return "$push_status"
+      fi
+    fi
+  fi
+
+  git fetch --no-tags "$remote" "+$branch_ref:$remote_branch_ref"
 }
 
 main "$@"
