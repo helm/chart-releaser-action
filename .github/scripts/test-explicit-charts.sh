@@ -26,6 +26,7 @@ export REAL_GIT
 REAL_GIT=$(command -v git)
 export FETCH_TRACE="$test_root/fetches"
 export CR_COMMAND_TRACE="$test_root/commands"
+export CR_ARGS_TRACE="$test_root/args"
 export CR_PACKAGE_TRACE="$test_root/packages"
 export CR_TEST_EXPECTED_PACKAGE_PATH=.cr-release-packages
 export RUNNER_TOOL_CACHE="$test_root/cache"
@@ -46,8 +47,9 @@ cat > "$install_dir/cr" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 command="$1"
-shift
 echo "$command" >> "$CR_COMMAND_TRACE"
+echo "$*" >> "$CR_ARGS_TRACE"
+shift
 if [[ "$command" == package ]]; then
   chart="$1"
   shift
@@ -120,6 +122,7 @@ export PATH="$test_root/bin:$PATH"
 reset_trace() {
   : > "$FETCH_TRACE"
   : > "$CR_COMMAND_TRACE"
+  : > "$CR_ARGS_TRACE"
   : > "$CR_PACKAGE_TRACE"
 }
 
@@ -321,3 +324,15 @@ fi
 grep -F "'--skip-release' cannot be combined" "$test_root/skip-release.log"
 test ! -s "$CR_COMMAND_TRACE"
 echo 'PASS: skip-release conflicts with packages-with-index.'
+
+printf 'package\nupload\nindex\n' > "$test_root/expected-commands"
+for option in --install-only --skip-packaging --skip-existing --skip-upload; do
+  reset_trace
+  run_action --charts charts/one "$option" false
+  diff -u "$test_root/expected-commands" "$CR_COMMAND_TRACE"
+  if grep -F -- '--skip-existing' "$CR_ARGS_TRACE"; then
+    echo "Expected '$option false' not to skip existing releases" >&2
+    exit 1
+  fi
+done
+echo "PASS: options set to 'false' stay disabled."
