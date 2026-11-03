@@ -36,8 +36,8 @@ jobs:
         cr version
         CR_VERSION_OUTPUT=$(cr version 2>&1 /dev/null)
         ACTUAL_VERSION=$(echo "$CR_VERSION_OUTPUT" | grep GitVersion | rev | cut -d ' ' -f1 | rev)
-        if [[ $ACTUAL_VERSION != 'v1.10.0' ]]; then
-          echo 'should be v1.10.0'
+        if [[ $ACTUAL_VERSION != 'v1.10.1' ]]; then
+          echo 'should be v1.10.1'
           exit 1
         else
           exit 0
