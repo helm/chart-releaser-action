@@ -33,6 +33,9 @@ inputs:
   charts:
     description: "Newline-separated chart directories to package without Git change detection. Takes precedence over charts_dir and match_tags; cannot be combined with skip_packaging."
     required: false
+  ignore_paths:
+    description: "Optional newline-separated Bash glob patterns relative to each chart root to exclude from Git change detection. Empty by default."
+    required: false
   install_dir:
     description: "Where to install the cr tool"
     required: false
@@ -90,6 +93,7 @@ runs:
       env:
         charts_dir: ${{ inputs.charts_dir }}
         charts: ${{ inputs.charts }}
+        ignore_paths: ${{ inputs.ignore_paths }}
         config: ${{ inputs.config }}
         install_dir: ${{ inputs.install_dir }}
         install_only: ${{ inputs.install_only }}
@@ -114,6 +118,10 @@ runs:
 
         if [[ -n "$charts" ]]; then
             args+=(--charts "$charts")
+        fi
+
+        if [[ -n "$ignore_paths" ]]; then
+            args+=(--ignore-paths "$ignore_paths")
         fi
 
         if [[ -n "$version" ]]; then

@@ -29,6 +29,7 @@ Usage: $(basename "$0") <options>
         --config                  The path to the chart-releaser config file
     -d, --charts-dir              The charts directory (default: charts)
         --charts                  Newline-separated chart directories to process without Git change detection
+        --ignore-paths            Newline-separated glob patterns to ignore during Git change detection
     -o, --owner                   The repo owner
     -r, --repo                    The repo name
         --pages-branch            The repo pages branch
@@ -53,6 +54,7 @@ main() {
   local config=
   local charts_dir=charts
   local charts=
+  local ignore_paths=
   local owner=
   local repo=
   local match_tags=
@@ -189,6 +191,16 @@ parse_command_line() {
         shift
       else
         echo "ERROR: '--charts' cannot be empty." >&2
+        show_help
+        exit 1
+      fi
+      ;;
+    --ignore-paths)
+      if [[ -n "${2:-}" ]]; then
+        ignore_paths="$2"
+        shift
+      else
+        echo "ERROR: '--ignore-paths' cannot be empty." >&2
         show_help
         exit 1
       fi
@@ -429,10 +441,37 @@ lookup_changed_charts() {
   local changed_files
   changed_files=$(git -c core.quotePath=false diff --find-renames --name-only "$commit" -- "$charts_dir")
 
-  local depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
-  local fields="1-${depth}"
+  local depth fields changed_file chart relative_path pattern ignored
+  depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
+  fields="1-${depth}"
 
-  cut -d '/' -f "$fields" <<<"$changed_files" | uniq | filter_charts
+  local changed_charts=() existing duplicate
+  while IFS= read -r changed_file; do
+    [[ -z "$changed_file" ]] && continue
+    chart=$(cut -d '/' -f "$fields" <<<"$changed_file")
+    relative_path=${changed_file#"$chart"/}
+    ignored=false
+    while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+      pattern=${pattern%$'\r'}
+      [[ -z "${pattern//[[:space:]]/}" ]] && continue
+      if [[ "$relative_path" == $pattern ]]; then
+        ignored=true
+        break
+      fi
+    done <<<"$ignore_paths"
+    [[ "$ignored" == true ]] && continue
+
+    duplicate=false
+    for existing in "${changed_charts[@]}"; do
+      if [[ "$existing" == "$chart" ]]; then
+        duplicate=true
+        break
+      fi
+    done
+    [[ "$duplicate" == false ]] && changed_charts+=("$chart")
+  done <<<"$changed_files"
+
+  printf '%s\n' "${changed_charts[@]}" | filter_charts
 }
 
 package_chart() {
