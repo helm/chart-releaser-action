@@ -439,7 +439,7 @@ lookup_changed_charts() {
   local commit="$1"
 
   local changed_files
-  changed_files=$(git -c core.quotePath=false diff --find-renames --name-only "$commit" -- "$charts_dir")
+  changed_files=$(git -c core.quotePath=false diff -z --find-renames --name-only "$commit" -- "$charts_dir" | tr '\0' '\n')
 
   local depth fields changed_file chart relative_path pattern ignored
   depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))

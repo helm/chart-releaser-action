@@ -204,3 +204,15 @@ fi
 grep -F "'--skip-release' cannot be combined" "$test_root/skip-release.log"
 test ! -s "$CR_COMMAND_TRACE"
 echo 'PASS: skip-release conflicts with packages-with-index.'
+
+git tag before-quoted-chart
+mkdir -p 'charts/we"ird'
+printf 'apiVersion: v2\nname: fixture\nversion: 0.1.0\n' > 'charts/we"ird/Chart.yaml'
+git add 'charts/we"ird/Chart.yaml'
+git commit -qm 'Add a chart whose directory name Git would quote'
+
+reset_trace
+run_action
+test "$(cat "$CR_PACKAGE_TRACE")" = 'charts/we"ird'
+test "$(cat changed_charts.txt)" = 'changed_charts=charts/we"ird'
+echo 'PASS: automatic discovery keeps a chart directory whose path Git quotes.'
