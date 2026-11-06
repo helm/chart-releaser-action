@@ -6,6 +6,9 @@ repo_root=$(git rev-parse --show-toplevel)
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
 
+export HOME="$test_root/home"
+mkdir -p "$HOME"
+
 runner_tool_cache="$test_root/tool-cache"
 install_dir="$test_root/cr"
 mkdir -p "$runner_tool_cache" "$install_dir"
@@ -80,7 +83,7 @@ test_repo="$test_root/repo"
 mkdir -p "$test_repo/charts/common-service"
 cd "$test_repo"
 
-git init >/dev/null
+git init -q -b main
 git config user.name test
 git config user.email test@example.com
 
@@ -102,6 +105,10 @@ EOF
 
 git add charts/common-service/Chart.yaml
 git commit -m "bump chart version" >/dev/null
+
+git init -q --bare "$test_root/origin.git"
+git remote add origin "$test_root/origin.git"
+git push -q origin HEAD:refs/heads/main
 
 export CR_TOKEN=fake-token
 export RUNNER_TOOL_CACHE="$runner_tool_cache"
