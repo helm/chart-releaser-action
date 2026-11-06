@@ -27,6 +27,8 @@ jobs:
     name: Install chart-releaser and test presence in path
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Test chart-releaser checksum verification
+      run: bash .github/scripts/test-install-checksum.sh
     - name: Install chart-releaser
       uses: ./
       with:
