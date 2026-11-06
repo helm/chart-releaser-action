@@ -353,6 +353,14 @@ parse_command_line() {
     shift
   done
 
+  # These options are enabled by any non-empty value; treat an explicit 'false' as unset.
+  local option
+  for option in install_only skip_packaging skip_existing skip_upload; do
+    if [[ "${!option}" == false ]]; then
+      printf -v "$option" '%s' ''
+    fi
+  done
+
   if [[ -z "$owner" ]]; then
     echo "ERROR: '-o|--owner' is required." >&2
     show_help
