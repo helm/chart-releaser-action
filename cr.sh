@@ -438,17 +438,28 @@ filter_charts() {
 lookup_changed_charts() {
   local commit="$1"
 
-  local changed_files
-  changed_files=$(git -c core.quotePath=false diff -z --find-renames --name-only "$commit" -- "$charts_dir" | tr '\0' '\n')
-
-  local depth fields changed_file chart relative_path pattern ignored
+  local depth fields changed_file chart chart_root relative_path pattern ignored charts_root
   depth=$(($(tr "/" "\n" <<<"$charts_dir" | sed '/^\(\.\)*$/d' | wc -l) + 1))
   fields="1-${depth}"
+  charts_root=$(cd "$charts_dir" 2>/dev/null && pwd -P) || charts_root=
 
   local changed_charts=() existing duplicate
-  while IFS= read -r changed_file; do
+  while IFS= read -r -d '' changed_file; do
     [[ -z "$changed_file" ]] && continue
+    # Git can track paths containing line breaks. They cannot be represented in
+    # the line based output of this function, so skip them instead of letting
+    # them turn into more than one record.
+    if [[ "$changed_file" == *$'\n'* || "$changed_file" == *$'\r'* ]]; then
+      printf 'WARNING: Skipping changed path with a line break: %q\n' "$changed_file" >&2
+      continue
+    fi
     chart=$(cut -d '/' -f "$fields" <<<"$changed_file")
+    # Resolve the chart directory and keep it inside the charts directory.
+    chart_root=$(cd "$chart" 2>/dev/null && pwd -P) || continue
+    if [[ -z "$charts_root" || "$chart_root" != "$charts_root"/* ]]; then
+      echo "WARNING: Skipping '$chart' because it resolves outside '$charts_dir'." >&2
+      continue
+    fi
     relative_path=${changed_file#"$chart"/}
     ignored=false
     while IFS= read -r pattern || [[ -n "$pattern" ]]; do
@@ -469,7 +480,7 @@ lookup_changed_charts() {
       fi
     done
     [[ "$duplicate" == false ]] && changed_charts+=("$chart")
-  done <<<"$changed_files"
+  done < <(git -c core.quotePath=false diff -z --find-renames --name-only "$commit" -- "$charts_dir")
 
   printf '%s\n' "${changed_charts[@]}" | filter_charts
 }

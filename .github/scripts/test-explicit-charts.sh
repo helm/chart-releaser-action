@@ -216,3 +216,21 @@ run_action
 test "$(cat "$CR_PACKAGE_TRACE")" = 'charts/we"ird'
 test "$(cat changed_charts.txt)" = 'changed_charts=charts/we"ird'
 echo 'PASS: automatic discovery keeps a chart directory whose path Git quotes.'
+
+mkdir -p charts/victim
+printf 'apiVersion: v2\nname: fixture\nversion: 0.1.0\n' > charts/victim/Chart.yaml
+git add charts/victim/Chart.yaml
+git commit -qm 'Add a chart that the line-break fixture must not reach'
+git tag before-linebreak-path
+
+mkdir -p $'charts/one/x\ncharts/victim'
+printf 'apiVersion: v2\nname: fixture\nversion: 0.1.0\n' > $'charts/one/x\ncharts/victim/Chart.yaml'
+git add -A
+git commit -qm 'Add a path containing a line break'
+
+reset_trace
+run_action >"$test_root/linebreak.log" 2>&1
+test ! -s "$CR_PACKAGE_TRACE"
+test "$(cat changed_charts.txt)" = 'changed_charts='
+grep -F 'line break' "$test_root/linebreak.log"
+echo 'PASS: a path containing a line break cannot smuggle an unrelated chart into the run.'
