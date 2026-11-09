@@ -15,6 +15,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate explicit chart processing
         run: bash .github/scripts/test-explicit-charts.sh
+      - name: Validate replacement publishing modes
+        run: bash .github/scripts/test-replacement.sh
 
   test_install_checksum:
     runs-on: ubuntu-latest
@@ -34,6 +36,8 @@ jobs:
     name: Install chart-releaser and test presence in path
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Test chart-releaser checksum verification
+      run: bash .github/scripts/test-install-checksum.sh
     - name: Install chart-releaser
       uses: ./
       with:
@@ -45,8 +49,8 @@ jobs:
         cr version
         CR_VERSION_OUTPUT=$(cr version 2>&1 /dev/null)
         ACTUAL_VERSION=$(echo "$CR_VERSION_OUTPUT" | grep GitVersion | rev | cut -d ' ' -f1 | rev)
-        if [[ $ACTUAL_VERSION != 'v1.9.0' ]]; then
-          echo 'should be v1.9.0'
+        if [[ $ACTUAL_VERSION != 'v1.10.1' ]]; then
+          echo 'should be v1.10.1'
           exit 1
         else
           exit 0

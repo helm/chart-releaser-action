@@ -1,0 +1,13 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "chart-releaser-action",
+      "pattern": [
+        {
+          "regexp": "^(?:Error|ERROR): (.*)$",
+          "message": 1
+        }
+      ]
+    }
+  ]
+}

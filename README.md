@@ -8,26 +8,14 @@ A GitHub action to turn a GitHub project into a self-hosted Helm chart repo, usi
 
 1. A GitHub repo containing a directory with your Helm charts (default is a folder named `/charts`, if you want to
    maintain your charts in a different directory, you must include a `charts_dir` input in the workflow).
-1. A GitHub branch called `gh-pages` to store the index and, optionally, chart packages. See [Publishing branch setup](#publishing-branch-setup).
-1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to `gh-pages`.
+1. A GitHub branch to store the index and, optionally, chart packages. If the configured `pages_branch` (default: `gh-pages`) does not exist, the action creates it as an empty branch before publishing. The workflow needs `contents: write` permission.
+1. In your repo, go to Settings/Pages. Change the `Source` `Branch` to the configured publishing branch (default: `gh-pages`).
 1. Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.
    For more information, reference the GitHub Help Documentation for [Creating a workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file)
 
 #### Publishing branch setup
 
-Create the publishing branch separately from the source branch so it does not inherit source files, workflows, or `.gitignore` rules. For example, create an empty orphan branch in a temporary worktree:
-
-```bash
-git worktree add --detach ../chart-releaser-pages HEAD
-cd ../chart-releaser-pages
-git switch --orphan gh-pages
-git commit --allow-empty -m "Initialize gh-pages"
-git push origin gh-pages
-cd -
-git worktree remove ../chart-releaser-pages
-```
-
-Run this once, before the first release. If you configure `pages_branch`, use that branch name instead of `gh-pages`.
+The action creates a missing publishing branch as an empty branch, separate from the source branch, so it does not inherit source files, workflows, or `.gitignore` rules. This happens only when charts are published; it does not create the branch when there are no chart changes or when index uploads are skipped. If you configure `pages_branch` in the action or `pages-branch` in the chart-releaser config, that branch is initialized instead of `gh-pages`.
 
 When `packages_with_index: true` is enabled, the action commits `.tgz` chart packages alongside `index.yaml`. The publishing branch's `.gitignore` must allow those files. In particular, remove an inherited `*.tgz` rule if Git reports `The following paths are ignored by one of your .gitignore files`. You can still ignore `.tgz` files on the source branch; its ignore rules do not apply to a separate publishing branch.
 
@@ -39,13 +27,16 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 
 ### Inputs
 
-- `version`: The chart-releaser version to use (default: v1.9.0)
+- `version`: The chart-releaser version to use (default: v1.10.1). The downloaded archive is verified against the release's `checksums.txt` before extraction.
 - `config`: Optional config file for chart-releaser. For more information on the config file, see the [documentation](https://github.com/helm/chart-releaser#config-file)
 - `charts_dir`: The charts directory
 - `charts`: Optional newline-separated chart directory paths, relative to the checkout directory. When set, only these charts are processed, without Git change detection. Takes precedence over `charts_dir` and `match_tags`; cannot be combined with `skip_packaging`.
+- `ignore_paths`: Optional newline-separated Bash glob patterns, relative to each chart root, to exclude from Git change detection. Patterns match paths of files within the chart, and `*` can match across `/`. For example, use `README.md` and `.helmignore` to ignore changes to those files. Empty by default, preserving existing behavior; this does not affect explicitly selected charts supplied through `charts`.
+- `package_path`: Directory for chart packages, relative to the checkout (default: `.cr-release-packages`). Applies to packaging, GitHub release upload, index publishing, and OCI pushes.
 - `skip_packaging`: This option, when populated, will skip the packaging step. This allows you to do more advanced packaging of your charts (for example, with the `helm package` command) before this action runs. This action will only handle the indexing and publishing steps.
 - `skip_existing`: Skip package upload if release/tag already exists
 - `skip_upload`: This option, when populated, will skip the upload step. This allows you to do more advanced uploading of your charts (for example with OCI based repositories) which doesn't require the `index.yaml`.
+- `skip_release`: When set to `true`, no GitHub release is created and the index is not updated. Charts are only packaged into `package_path` (default: `.cr-release-packages`) and pushed to `oci_registry_url` when it is set, so you can publish them elsewhere (for example with `actions/upload-artifact`). `CR_TOKEN` is not required in this mode. Cannot be combined with `packages_with_index`.
 - `mark_as_latest`: When set to `false`, the created GitHub release will not be marked as the "latest" release on the repository's releases page.
 - `match_tags`: The glob to use to filter Git tags, usually used with the `CR_RELEASE_NAME_TEMPLATE` environment variable (default: all tags)
 - `packages_with_index`: When you set this to `true`, it will upload chart packages directly into publishing branch.
@@ -57,7 +48,10 @@ If publishing fails with `fatal: could not read Username for 'https://github.com
 ### Outputs
 
 - `changed_charts`: A comma-separated list of charts that were released on this run. Will be an empty string if no updates were detected, will be unset if `--skip_packaging` is used: in the latter case your custom packaging step is responsible for setting its own outputs if you need them.
-- `chart_version`: The version of the most recently generated charts; will be empty when explicit `charts` are supplied.
+- `chart_version`: The version of the most recently generated charts, as a comma-separated list of `<name>-<version>` entries.
+- `releases`: A JSON array of objects with `chart`, `version`, and `tag` fields for each processed chart. `chart` is the name from `Chart.yaml`; `tag` uses chart-releaser's default `{{ .Name }}-{{ .Version }}` format. The output is `[]` when no charts were detected and is unset when `skip_packaging` is used. Requires `jq` on the runner.
+
+Errors reported by chart-releaser or the action are surfaced as GitHub Actions annotations. The matcher highlights the error text but does not map it to a specific chart source line.
 
 ### Explicit chart processing
 
@@ -74,13 +68,44 @@ Supply chart directories to package selected charts even when Git reports no cha
     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
 
-Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed; `chart_version` is empty because this mode does not select a comparison tag.
+Paths may contain spaces, and each selected directory must contain `Chart.yaml`. Duplicate paths to the same directory are processed once. All paths are validated before packaging starts. `changed_charts` lists the selected directories that were processed and `chart_version` lists their packaged `<name>-<version>` entries.
 
-This bypasses discovery only. Versions still come from `Chart.yaml`, and existing release/asset collision behavior is unchanged: existing releases fail unless skipping is enabled. It does not overwrite artifacts or repair an index using previously published packages. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
+This bypasses discovery only. Versions still come from `Chart.yaml`. Existing releases fail unless skipping or [replacement](#replacing-an-existing-chart-version) is enabled. Leave `charts` unset to retain automatic discovery, or use `skip_packaging` without `charts` when packaging charts yourself.
+
+### Replacing an existing chart version
+
+With chart-releaser v1.10.0 or later, set `CR_REPLACE_EXISTING: "true"` to replace the archive and optional provenance of an existing mutable GitHub release and refresh that version's index metadata, URLs, and checksum. The environment variable applies to both upload and index commands. Use `charts` to process the selected chart even when Git detects no changes:
+
+```yaml
+- name: Replace selected chart
+  uses: helm/chart-releaser-action@main
+  with:
+    charts: charts/my-chart
+    # Optional: also replace packages hosted on the Pages branch.
+    # packages_with_index: true
+  env:
+    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    CR_REPLACE_EXISTING: "true"
+```
+
+Keep the version in `Chart.yaml` unchanged to replace that version. Release identity, tag, notes, other release metadata, and unrelated assets are preserved. Replacing a signed package with an unsigned package removes stale provenance. Immutable releases cannot be replaced; publish a new chart version instead.
+
+Do not combine replacement with `skip_existing` or `CR_SKIP_EXISTING`, and leave `skip_upload` unset so the index is updated. For `packages_with_index: true`, enable replacement through the environment variable as shown above; this disables the action's automatic `--skip-existing` flag. Setting only `replace-existing` in a CLI config file does not disable that automatic flag. Default Pages behavior still skips existing releases and preserves existing packages.
+
+Serialize publishing jobs, for example with a workflow-level concurrency group shared by all publishers of the same repository:
+
+```yaml
+concurrency:
+  group: chart-publishing-${{ github.repository }}
+  cancel-in-progress: false
+```
+
+Release assets and Pages/index updates are separate operations. If interrupted, inspect reported temporary assets and rerun upload and index with the same packages; retain the original archives and provenance and use `skip_packaging: true` for recovery. Consumers may cache previously published bytes, so publishing a new version is generally preferable. See the [CLI replacement documentation](https://github.com/helm/chart-releaser#replacing-mutable-chart-releases) for recovery details.
 
 ### Environment variables
 
-- `CR_TOKEN` (required): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
+- `CR_TOKEN` (required unless `skip_release` is `true`): The GitHub token of this repository (`${{ secrets.GITHUB_TOKEN }}`)
+- `CR_REPLACE_EXISTING`: Set to `"true"` to replace existing mutable chart assets and refresh matching index entries. Requires chart-releaser v1.10.0 or later; see [replacement](#replacing-an-existing-chart-version).
 
 For more information on environment variables, see the [documentation](https://github.com/helm/chart-releaser#environment-variables).
 
@@ -96,7 +121,7 @@ To include GitHub-generated changelog text and pull request links in releases, e
     CR_GENERATE_RELEASE_NOTES: "true"
 ```
 
-The default CLI v1.9.0 compares against the previous tag of the same chart when one can be identified. First releases, unsupported release-name templates, and lookup failures fall back to GitHub's default generation behavior. Generated notes cover the commit range between tags; they do not filter pull requests by chart directory, so a monorepo release can include changes to other charts.
+The default CLI v1.10.1 compares against the previous tag of the same chart when one can be identified. First releases, unsupported release-name templates, and lookup failures fall back to GitHub's default generation behavior. Generated notes cover the commit range between tags; they do not filter pull requests by chart directory, so a monorepo release can include changes to other charts.
 
 For notes specific to each chart, prepare a Markdown file inside each chart before packaging, then select it with a config file:
 
@@ -217,6 +242,16 @@ When `oci_registry_url` is set, the action pushes each packaged chart to the OCI
 ```
 
 If you prefer to pass credentials directly to the action instead of using `docker/login-action`, set the `oci_username` and `oci_password` inputs.
+
+To push to the OCI registry only, without creating GitHub releases or updating the GitHub Pages index, set `skip_release: true`:
+
+```yaml
+- name: Run chart-releaser
+  uses: helm/chart-releaser-action@v1.9.0
+  with:
+    oci_registry_url: oci://ghcr.io/${{ github.repository_owner }}/charts
+    skip_release: true
+```
 
 ## Code of conduct
 

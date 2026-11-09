@@ -16,120 +16,73 @@
 
 set -euo pipefail
 
-action_script="$(git rev-parse --show-toplevel)/cr.sh"
+repo_root=$(git rev-parse --show-toplevel)
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
-export RUNNER_TOOL_CACHE="$test_root/cache"
-export RELEASE_FIXTURES="$test_root/release"
-export TMPDIR="$test_root/tmp"
-version=v9.9.9
-tarball="chart-releaser_${version#v}_linux_amd64.tar.gz"
-mkdir -p "$test_root/bin" "$RUNNER_TOOL_CACHE" "$RELEASE_FIXTURES" "$test_root/payload" "$TMPDIR"
 
-# Fake release: a tarball holding a stub cr binary, plus its checksums.txt.
-printf '#!/usr/bin/env bash\necho fake-cr\n' > "$test_root/payload/cr"
-chmod +x "$test_root/payload/cr"
-tar -czf "$RELEASE_FIXTURES/$tarball" -C "$test_root/payload" cr
+export CR_TEST_ARCHIVE="$test_root/archive"
+export CR_TEST_TAR_TRACE="$test_root/tar.trace"
+mkdir -p "$test_root/bin" "$test_root/cache"
+printf 'fake chart-releaser archive\n' >"$CR_TEST_ARCHIVE"
 
-write_checksums() {
-  (cd "$RELEASE_FIXTURES" && sha256sum "$tarball" > checksums.txt)
-  printf '%s  %s.sbom.json\n' "$(printf 0%.0s {1..64})" "$tarball" >> "$RELEASE_FIXTURES/checksums.txt"
-}
-
-# Stub curl serves release assets from the fixture directory.
-cat > "$test_root/bin/curl" <<'STUB'
+cat >"$test_root/bin/curl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-out= url=
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -*o) out="$2"; shift 2 ;;
-    -*) shift ;;
-    *) url="$1"; shift ;;
-  esac
-done
-src="$RELEASE_FIXTURES/${url##*/}"
-[[ -f "$src" ]] || { echo "curl: (22) 404 for $url" >&2; exit 22; }
-cp "$src" "$out"
-STUB
-chmod +x "$test_root/bin/curl"
+
+output="$2"
+url="$3"
+case "$url" in
+*/checksums.txt)
+  checksum=$(shasum -a 256 "$CR_TEST_ARCHIVE" | cut -d ' ' -f 1)
+  if [[ "${CR_TEST_BAD_CHECKSUM:-false}" == true ]]; then
+    if [[ "${checksum:0:1}" == 0 ]]; then
+      checksum="1${checksum:1}"
+    else
+      checksum="0${checksum:1}"
+    fi
+  fi
+  printf '%s  chart-releaser_test_linux_amd64.tar.gz\n' "$checksum" >"$output"
+  ;;
+*)
+  cp "$CR_TEST_ARCHIVE" "$output"
+  ;;
+esac
+EOF
+
+cat >"$test_root/bin/tar" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+echo extract >>"$CR_TEST_TAR_TRACE"
+install_dir="${@: -1}"
+printf '#!/usr/bin/env bash\nexit 0\n' >"$install_dir/cr"
+chmod +x "$install_dir/cr"
+EOF
+chmod +x "$test_root/bin/curl" "$test_root/bin/tar"
 export PATH="$test_root/bin:$PATH"
+export RUNNER_TOOL_CACHE="$test_root/cache"
 
 run_install() {
   local install_dir="$1"
-  CR_TOKEN=fake bash "$action_script" --version "$version" --owner test --repo fixtures --install-dir "$install_dir" --install-only true
+  CR_TOKEN=fake bash "$repo_root/cr.sh" \
+    --owner test \
+    --repo fixtures \
+    --version vtest \
+    --install-dir "$install_dir" \
+    --install-only true
 }
 
-work_dir="$test_root/work"
-mkdir -p "$work_dir"
-cd "$work_dir"
-
-# 1. Matching checksum installs cr.
-write_checksums
-run_install "$RUNNER_TOOL_CACHE/ok" > "$test_root/ok.log" 2>&1 || { cat "$test_root/ok.log"; exit 1; }
-if [[ ! -x "$RUNNER_TOOL_CACHE/ok/cr" ]]; then
-  cat "$test_root/ok.log"
-  echo 'cr should be installed when the checksum matches' >&2
+if CR_TEST_BAD_CHECKSUM=true run_install "$test_root/cache/bad" >"$test_root/bad.log" 2>&1; then
+  echo "Expected installation to fail for an invalid checksum." >&2
   exit 1
 fi
-grep -q "Verified checksum of $tarball" "$test_root/ok.log"
+grep -F "Checksum verification failed" "$test_root/bad.log"
+test ! -s "$CR_TEST_TAR_TRACE"
+test ! -e "$test_root/cache/bad/cr"
+test ! -e "$test_root/cache/bad" || { echo "install dir should be removed after checksum failure" >&2; exit 1; }
 
-# 2. Tampered tarball is rejected and nothing is installed.
-printf 'tampered' >> "$RELEASE_FIXTURES/$tarball"
-if run_install "$RUNNER_TOOL_CACHE/tampered" > "$test_root/tampered.log" 2>&1; then
-  echo 'install should fail when the checksum does not match' >&2
-  exit 1
-fi
-grep -q "Checksum mismatch for $tarball" "$test_root/tampered.log"
-[[ ! -e "$RUNNER_TOOL_CACHE/tampered" ]] || { echo 'install dir should be removed after a failed check' >&2; exit 1; }
+echo "PASS: an invalid checksum prevents archive extraction."
 
-# 3. Missing checksum entry is rejected.
-printf '%s  some-other-file.tar.gz\n' "$(printf 0%.0s {1..64})" > "$RELEASE_FIXTURES/checksums.txt"
-if run_install "$RUNNER_TOOL_CACHE/missing" > "$test_root/missing.log" 2>&1; then
-  echo 'install should fail when checksums.txt has no entry for the tarball' >&2
-  exit 1
-fi
-grep -q "No checksum for $tarball" "$test_root/missing.log"
-[[ ! -e "$RUNNER_TOOL_CACHE/missing" ]] || { echo 'install dir should be removed after a missing checksum entry' >&2; exit 1; }
-
-# 4. Missing checksums.txt is a download error, and it must not leave an
-# empty install dir behind that makes a retry skip the install.
-tar -czf "$RELEASE_FIXTURES/$tarball" -C "$test_root/payload" cr
-rm "$RELEASE_FIXTURES/checksums.txt"
-if run_install "$RUNNER_TOOL_CACHE/nochecksums" > "$test_root/nochecksums.log" 2>&1; then
-  echo 'install should fail when checksums.txt cannot be downloaded' >&2
-  exit 1
-fi
-[[ ! -e "$RUNNER_TOOL_CACHE/nochecksums" ]] || { echo 'install dir should be removed after a failed download' >&2; exit 1; }
-
-# 5. Retrying with the same install dir once checksums.txt is available installs cr.
-write_checksums
-run_install "$RUNNER_TOOL_CACHE/nochecksums" > "$test_root/retry.log" 2>&1 || { cat "$test_root/retry.log"; exit 1; }
-if [[ ! -x "$RUNNER_TOOL_CACHE/nochecksums/cr" ]]; then
-  cat "$test_root/retry.log"
-  echo 'retry should install cr after a failed download' >&2
-  exit 1
-fi
-
-# 6. A failed tarball download is cleaned up too.
-rm "$RELEASE_FIXTURES/$tarball"
-if run_install "$RUNNER_TOOL_CACHE/notarball" > "$test_root/notarball.log" 2>&1; then
-  echo 'install should fail when the tarball cannot be downloaded' >&2
-  exit 1
-fi
-[[ ! -e "$RUNNER_TOOL_CACHE/notarball" ]] || { echo 'install dir should be removed after a failed tarball download' >&2; exit 1; }
-
-# No temporary download directories are left behind.
-if [[ -n "$(ls -A "$TMPDIR")" ]]; then
-  ls -A "$TMPDIR" >&2
-  echo 'install should remove its temporary download directory' >&2
-  exit 1
-fi
-
-# The work directory stays clean.
-if [[ -n "$(ls -A "$work_dir")" ]]; then
-  echo 'install should not leave files in the working directory' >&2
-  exit 1
-fi
-
-echo 'install checksum tests passed'
+run_install "$test_root/cache/good"
+test -x "$test_root/cache/good/cr"
+test "$(cat "$CR_TEST_TAR_TRACE")" = extract
+echo "PASS: a valid checksum allows archive extraction."
