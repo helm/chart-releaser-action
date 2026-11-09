@@ -78,6 +78,8 @@ fi
 grep -F "Checksum verification failed" "$test_root/bad.log"
 test ! -s "$CR_TEST_TAR_TRACE"
 test ! -e "$test_root/cache/bad/cr"
+test ! -e "$test_root/cache/bad" || { echo "install dir should be removed after checksum failure" >&2; exit 1; }
+
 echo "PASS: an invalid checksum prevents archive extraction."
 
 run_install "$test_root/cache/good"

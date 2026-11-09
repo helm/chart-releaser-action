@@ -378,6 +378,8 @@ parse_command_line() {
   fi
 }
 
+
+
 install_chart_releaser() {
   if [[ ! -d "$RUNNER_TOOL_CACHE" ]]; then
     echo "Cache directory '$RUNNER_TOOL_CACHE' does not exist" >&2
@@ -396,38 +398,42 @@ install_chart_releaser() {
     local download_dir
     download_dir=$(mktemp -d)
 
+    cleanup_failed_install() {
+      rm -rf "$download_dir" "$install_dir"
+    }
+
     if ! curl -fsSLo "$download_dir/$archive" "$release_url/$archive"; then
       echo "ERROR: Failed to download chart-releaser archive '$archive'." >&2
-      rm -rf "$download_dir"
+      cleanup_failed_install
       return 1
     fi
     if ! curl -fsSLo "$download_dir/checksums.txt" "$release_url/checksums.txt"; then
       echo "ERROR: Failed to download chart-releaser checksums." >&2
-      rm -rf "$download_dir"
+      cleanup_failed_install
       return 1
     fi
 
     local checksum_line
     if ! checksum_line=$(awk -v archive="$archive" '$2 == archive { print; count++ } END { if (count != 1) exit 1 }' "$download_dir/checksums.txt"); then
       echo "ERROR: Expected exactly one checksum for '$archive'." >&2
-      rm -rf "$download_dir"
+      cleanup_failed_install
       return 1
     fi
     local expected_checksum="${checksum_line%%[[:space:]]*}"
     local actual_checksum
     if ! actual_checksum=$(shasum -a 256 "$download_dir/$archive" | awk '{ print $1 }'); then
       echo "ERROR: Failed to calculate checksum for '$archive'." >&2
-      rm -rf "$download_dir"
+      cleanup_failed_install
       return 1
     fi
     if [[ "$actual_checksum" != "$expected_checksum" ]]; then
       echo "ERROR: Checksum verification failed for '$archive'." >&2
-      rm -rf "$download_dir"
+      cleanup_failed_install
       return 1
     fi
     if ! tar -xzf "$download_dir/$archive" -C "$install_dir"; then
       echo "ERROR: Failed to extract chart-releaser archive '$archive'." >&2
-      rm -rf "$download_dir"
+      cleanup_failed_install
       return 1
     fi
     rm -rf "$download_dir"
